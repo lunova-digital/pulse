@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+html{--bg:#FAFAF9;--card:#FFFFFF;--border:#E7E5E4;--text:#1C1917;--text2:#78716C;--hover:#F5F5F4;--accent:#4F46E5;--accent-fg:#4F46E5;--accent-t:rgba(79,70,229,.1);--orange:#EA580C;--orange-t:rgba(234,88,12,.1);--blue:#2563EB;--blue-t:rgba(37,99,235,.1);--green:#16A34A;--green-t:rgba(22,163,74,.1);--red:#DC2626;--red-t:rgba(220,38,38,.1);--gray:#A8A29E;--gray-t:rgba(168,162,158,.16);--scrim:rgba(28,25,23,.32);color-scheme:light}
+html[data-theme=dark]{--bg:#111113;--card:#1A1A1D;--border:#2A2A2E;--text:#F5F5F4;--text2:#A8A29E;--hover:#232327;--accent-fg:#818CF8;--accent-t:rgba(99,102,241,.16);--orange-t:rgba(234,88,12,.16);--blue-t:rgba(37,99,235,.18);--green-t:rgba(22,163,74,.16);--red-t:rgba(220,38,38,.16);--gray-t:rgba(168,162,158,.14);--scrim:rgba(0,0,0,.56);color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased;transition:background 200ms,color 200ms}
+button,input,textarea,select{font:inherit;color:inherit}
+a{color:var(--accent-fg);text-decoration:none}
+a:hover{text-decoration:underline}
+input::placeholder,textarea::placeholder{color:var(--text2)}
+@keyframes pBounce{0%,100%{transform:translateY(0) scale(1,1)}12%{transform:translateY(0) scale(1.1,.9)}40%{transform:translateY(-14px) scale(.96,1.04) rotate(-6deg)}60%{transform:translateY(-14px) scale(.96,1.04) rotate(6deg)}84%{transform:translateY(0) scale(1.08,.92)}}
+@keyframes pShadow{0%,100%{transform:scaleX(1);opacity:1}40%,60%{transform:scaleX(.55);opacity:.5}}
+@keyframes pBlink{0%,44%,52%,100%{transform:scaleY(1)}48%{transform:scaleY(.1)}}
+@keyframes pSpark{0%,30%{opacity:0;transform:translateY(6px) scale(.4)}46%{opacity:1;transform:translateY(0) scale(1)}66%,100%{opacity:0;transform:translateY(-4px) scale(1)}}
+@keyframes pFade{from{opacity:0}to{opacity:1}}
+@keyframes pSlideR{from{transform:translateX(32px);opacity:0}to{transform:none;opacity:1}}
+@keyframes pSlideU{from{transform:translateY(48px);opacity:0}to{transform:none;opacity:1}}
+@keyframes pRise{from{transform:translate(-50%,8px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+</style>
+</helmet>
+<div style="min-height:100vh;background:var(--bg);color:var(--text)">
+
+<sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px">
+<form onSubmit="{{ login }}" style="width:100%;max-width:400px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:32px;display:flex;flex-direction:column;gap:24px;animation:pFade 200ms">
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font:700 22px/32px Inter, sans-serif;letter-spacing:-0.01em">Pulse</div>
+<div style="color:var(--text2)">Your daily project status, without the notebook.</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px">
+<label style="display:flex;flex-direction:column;gap:8px"><span style="font-weight:600">Email</span><input type="email" value="{{ email }}" onChange="{{ setEmail }}" placeholder="you@studio.com" style="height:44px;padding:0 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);outline:none;width:100%;transition:border-color 150ms" style-focus="border-color:var(--accent)"></label>
+<label style="display:flex;flex-direction:column;gap:8px"><span style="font-weight:600">Password</span><input type="password" value="{{ pw }}" onChange="{{ setPw }}" placeholder="••••••••" style="height:44px;padding:0 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);outline:none;width:100%;transition:border-color 150ms" style-focus="border-color:var(--accent)"></label>
+</div>
+<button type="submit" style="height:44px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;transition:background 150ms" style-hover="background:#4338CA">Log in</button>
+</form>
+</div>
+</sc-if>
+
+<sc-if value="{{ isApp }}" hint-placeholder-val="{{ false }}">
+
+<sc-if value="{{ desk }}" hint-placeholder-val="{{ true }}">
+<header style="position:sticky;top:0;z-index:30;background:var(--bg);border-bottom:1px solid var(--border)">
+<div style="max-width:1200px;margin:0 auto;padding:0 24px;height:64px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px">
+<button onClick="{{ goToday }}" style="justify-self:start;background:none;border:none;padding:0;cursor:pointer;font:700 22px/32px Inter, sans-serif;letter-spacing:-0.01em;color:var(--text)">Pulse</button>
+<nav style="display:flex;gap:8px;height:64px">
+<sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+<button onClick="{{ t.go }}" style="height:64px;padding:0 16px;background:none;border:none;border-bottom:2px solid {{ t.line }};color:{{ t.fg }};font-weight:600;cursor:pointer;transition:color 150ms, border-color 150ms">{{ t.label }}</button>
+</sc-for>
+</nav>
+<div style="justify-self:end;display:flex;align-items:center;gap:8px">
+<button onClick="{{ toggleTheme }}" title="Toggle light/dark" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:none;border-radius:8px;background:transparent;color:var(--text2);cursor:pointer;transition:background 150ms" style-hover="background:var(--hover);color:var(--text)">{{ themeIcon }}</button>
+<button onClick="{{ toggleAvatar }}" title="Account" style="width:44px;height:44px;border:none;background:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center"><span style="width:32px;height:32px;border-radius:50%;background:var(--hover);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--text)">{{ initial }}</span></button>
+</div>
+</div>
+</header>
+</sc-if>
+
+<sc-if value="{{ mob }}" hint-placeholder-val="{{ false }}">
+<header style="position:sticky;top:0;z-index:30;background:var(--bg);border-bottom:1px solid var(--border);height:56px;padding:0 8px 0 16px;display:flex;align-items:center;gap:8px">
+<div style="flex:1;font:700 22px/32px Inter, sans-serif;letter-spacing:-0.01em">Pulse</div>
+<button onClick="{{ toggleTheme }}" title="Toggle light/dark" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:none;border-radius:8px;background:transparent;color:var(--text2);cursor:pointer">{{ themeIcon }}</button>
+<button onClick="{{ toggleAvatar }}" title="Account" style="width:44px;height:44px;border:none;background:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center"><span style="width:32px;height:32px;border-radius:50%;background:var(--hover);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--text)">{{ initial }}</span></button>
+</header>
+</sc-if>
+
+<sc-if value="{{ avatarOpen }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeMenu }}" style="position:fixed;inset:0;z-index:40"></div>
+<div style="position:fixed;top:{{ menuTop }};right:max(16px, calc((100vw - 1200px) / 2 + 24px));z-index:41;width:256px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px;animation:pFade 150ms">
+<div style="padding:8px 8px 16px;border-bottom:1px solid var(--border);margin-bottom:8px">
+<div style="font-weight:600">Signed in</div>
+<div style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ shownEmail }}</div>
+</div>
+<button onClick="{{ toggleTheme }}" style="width:100%;height:44px;display:flex;align-items:center;gap:8px;padding:0 8px;border:none;border-radius:8px;background:transparent;color:var(--text);cursor:pointer;text-align:left" style-hover="background:var(--hover)">{{ themeIcon }}{{ themeLabel }}</button>
+<button onClick="{{ logout }}" style="width:100%;height:44px;display:flex;align-items:center;gap:8px;padding:0 8px;border:none;border-radius:8px;background:transparent;color:var(--text);cursor:pointer;text-align:left" style-hover="background:var(--hover)">{{ ic.logout }}Log out</button>
+</div>
+</sc-if>
+
+<main style="max-width:1200px;margin:0 auto;padding:{{ mainPad }}">
+
+<sc-if value="{{ isToday }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:24px;animation:pFade 200ms">
+<div>
+<h1 style="margin:0;font:700 22px/32px Inter, sans-serif">Today</h1>
+<div style="color:var(--text2)">{{ todayLabel }}</div>
+</div>
+<sc-for list="{{ sections }}" as="sec" hint-placeholder-count="4">
+<section style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:center;gap:8px;padding:16px">
+<h2 style="margin:0;font:600 16px/24px Inter, sans-serif">{{ sec.title }}</h2>
+<span style="min-width:24px;height:24px;padding:0 8px;border-radius:8px;background:var(--hover);color:var(--text2);display:inline-flex;align-items:center;justify-content:center;font-weight:600">{{ sec.count }}</span>
+</div>
+<sc-if value="{{ sec.empty }}" hint-placeholder-val="{{ false }}">{{ sec.joy }}</sc-if>
+<sc-for list="{{ sec.rows }}" as="r" hint-placeholder-count="2">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:8px 8px 8px 16px;border-top:1px solid var(--border);min-height:64px">
+<div style="display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap;min-width:0">
+<button onClick="{{ r.open }}" style="font:600 16px/24px Inter, sans-serif;color:var(--text);background:none;border:none;padding:0;cursor:pointer;text-align:left" style-hover="color:var(--accent-fg)">{{ r.name }}</button>
+<span style="display:inline-flex;align-items:center;gap:8px;height:24px;padding:0 8px;border-radius:8px;background:{{ r.mt }};color:{{ r.mc }};font-weight:500;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:{{ r.md }}"></span>{{ r.badge }}</span>
+</div>
+<div style="flex:1 1 220px;min-width:0;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.status }}</div>
+<div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+<span style="color:var(--text2);white-space:nowrap">{{ r.meta }}</span>
+<sc-if value="{{ r.hasNudge }}" hint-placeholder-val="{{ false }}"><button onClick="{{ r.nudge }}" style="height:44px;padding:0 8px;border:none;border-radius:8px;background:transparent;color:var(--accent-fg);font-weight:600;cursor:pointer" style-hover="background:var(--accent-t)">Nudge</button></sc-if>
+<button onClick="{{ r.update }}" title="Add update" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text2);cursor:pointer;transition:background 150ms" style-hover="background:var(--hover);color:var(--text)">{{ ic.plus }}</button>
+</div>
+</div>
+</sc-for>
+</section>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isProjects }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:24px;animation:pFade 200ms">
+<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+<h1 style="margin:0;font:700 22px/32px Inter, sans-serif;flex:1">Projects</h1>
+<button onClick="{{ openNew }}" style="display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;transition:background 150ms" style-hover="background:#4338CA">{{ ic.plus }}New project</button>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center">
+<label style="flex:1 1 280px;max-width:400px;position:relative;display:flex;align-items:center">
+<span style="position:absolute;left:16px;color:var(--text2);pointer-events:none">{{ ic.search }}</span>
+<input value="{{ q }}" onChange="{{ setQ }}" placeholder="Search projects or clients" style="height:44px;padding:0 16px 0 48px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);outline:none;width:100%;transition:border-color 150ms" style-focus="border-color:var(--accent)">
+</label>
+<div style="display:flex;flex-wrap:wrap;gap:8px">
+<sc-for list="{{ pfChips }}" as="c" hint-placeholder-count="4">
+<button onClick="{{ c.pick }}" style="height:{{ chipH }};padding:0 16px;border-radius:8px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font-weight:500;cursor:pointer;transition:all 150ms;white-space:nowrap">{{ c.label }}</button>
+</sc-for>
+</div>
+</div>
+<sc-if value="{{ gridEmpty }}" hint-placeholder-val="{{ false }}"><div style="background:var(--card);border:1px solid var(--border);border-radius:12px">{{ joyGrid }}</div></sc-if>
+<div style="display:grid;grid-template-columns:{{ gridCols }};gap:16px">
+<sc-for list="{{ cards }}" as="p" hint-placeholder-count="8">
+<div onClick="{{ p.open }}" role="button" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:border-color 150ms;min-height:200px;min-width:0" style-hover="border-color:var(--text2)">
+<div style="display:flex;align-items:flex-start;gap:8px">
+<div style="flex:1;min-width:0;font:600 16px/24px Inter, sans-serif">{{ p.name }}</div>
+<sc-if value="{{ p.pinned }}" hint-placeholder-val="{{ false }}"><span title="Pinned" style="color:var(--text2);padding-top:3px">{{ ic.pin }}</span></sc-if>
+</div>
+<div><span style="display:inline-flex;align-items:center;gap:8px;height:24px;padding:0 8px;border-radius:8px;background:{{ p.mt }};color:{{ p.mc }};font-weight:500;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:{{ p.md }}"></span>{{ p.badge }}</span></div>
+<div style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-wrap:pretty">{{ p.statusLabel }}</div>
+<sc-if value="{{ p.hasMeet }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:8px;color:var(--text2)">{{ ic.cal }}<span>{{ p.meet }}</span></div></sc-if>
+<div style="margin-top:auto;padding-top:8px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;color:var(--text2)">
+<span style="flex:1;white-space:nowrap">{{ p.updated }}</span>
+<sc-if value="{{ p.missed }}" hint-placeholder-val="{{ false }}"><span style="height:24px;padding:0 8px;border-radius:8px;background:var(--red-t);color:var(--red);font-weight:500;display:inline-flex;align-items:center;white-space:nowrap">Meeting not logged</span></sc-if>
+<sc-if value="{{ p.stale }}" hint-placeholder-val="{{ false }}"><span style="height:24px;padding:0 8px;border-radius:8px;background:var(--gray-t);color:var(--text2);font-weight:500;display:inline-flex;align-items:center">Stale</span></sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isArchived }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:24px;animation:pFade 200ms">
+<div>
+<h1 style="margin:0;font:700 22px/32px Inter, sans-serif">Archived</h1>
+<div style="color:var(--text2)">Archived projects keep their full timeline. Open one to reopen it.</div>
+</div>
+<sc-if value="{{ archEmpty }}" hint-placeholder-val="{{ false }}"><div style="background:var(--card);border:1px solid var(--border);border-radius:12px">{{ joyArch }}</div></sc-if>
+<div style="display:grid;grid-template-columns:{{ gridCols }};gap:16px">
+<sc-for list="{{ archCards }}" as="p" hint-placeholder-count="2">
+<div onClick="{{ p.open }}" role="button" style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:border-color 150ms;min-height:200px;min-width:0" style-hover="border-color:var(--text2)">
+<div style="font:600 16px/24px Inter, sans-serif;color:var(--text2)">{{ p.name }}</div>
+<div><span style="display:inline-flex;align-items:center;gap:8px;height:24px;padding:0 8px;border-radius:8px;background:var(--gray-t);color:var(--text2);font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:var(--gray)"></span>Archived</span></div>
+<div style="color:var(--text2);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;text-wrap:pretty">{{ p.archiveReason }}</div>
+<div style="margin-top:auto;padding-top:8px;color:var(--text2)">{{ p.archivedLine }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isTasks }}" hint-placeholder-val="{{ false }}">
+<div style="max-width:800px;margin:0 auto;display:flex;flex-direction:column;gap:24px;animation:pFade 200ms">
+<h1 style="margin:0;font:700 22px/32px Inter, sans-serif">Tasks</h1>
+<form onSubmit="{{ addTask }}" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-wrap:wrap;gap:8px">
+<input value="{{ nt.title }}" onChange="{{ setNtTitle }}" placeholder="+ Add task" style="flex:1 1 240px;height:44px;padding:0 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);outline:none;min-width:0;transition:border-color 150ms" style-focus="border-color:var(--accent)">
+<div style="flex:1 1 160px;min-width:0">{{ ntProjSel }}</div>
+<input type="date" value="{{ nt.due }}" onChange="{{ setNtDue }}" style="flex:0 1 160px;height:44px;padding:0 8px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);outline:none;min-width:0">
+<button type="submit" disabled="{{ ntDisabled }}" style="height:44px;padding:0 16px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;opacity:{{ ntOp }};transition:opacity 150ms">Add</button>
+</form>
+<div style="display:flex;gap:8px;border-bottom:1px solid var(--border)">
+<sc-for list="{{ taskTabs }}" as="t" hint-placeholder-count="2">
+<button onClick="{{ t.go }}" style="height:44px;padding:0 16px;background:none;border:none;border-bottom:2px solid {{ t.line }};margin-bottom:-1px;color:{{ t.fg }};font-weight:600;cursor:pointer;transition:color 150ms">{{ t.label }}</button>
+</sc-for>
+</div>
+<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<sc-if value="{{ tasksEmpty }}" hint-placeholder-val="{{ false }}">{{ joyTasks }}</sc-if>
+<sc-for list="{{ taskRows }}" as="t" hint-placeholder-count="5">
+<div style="display:flex;align-items:center;gap:8px;padding:8px 16px 8px 8px;border-top:1px solid var(--border);margin-top:-1px;min-height:60px;flex-wrap:wrap">
+<button onClick="{{ t.toggle }}" title="{{ t.toggleTitle }}" style="width:44px;height:44px;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0"><span style="width:20px;height:20px;border-radius:6px;border:2px solid {{ t.boxBd }};background:{{ t.boxBg }};color:#fff;display:flex;align-items:center;justify-content:center;transition:all 150ms">{{ t.check }}</span></button>
+<div style="flex:1 1 200px;min-width:0;text-decoration:{{ t.deco }};color:{{ t.fg }}">{{ t.title }}</div>
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto">
+<sc-if value="{{ t.hasProj }}" hint-placeholder-val="{{ false }}"><button onClick="{{ t.openProj }}" style="height:28px;padding:0 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text2);cursor:pointer;font-weight:500" style-hover="color:var(--text)">{{ t.proj }}</button></sc-if>
+<sc-if value="{{ t.hasDue }}" hint-placeholder-val="{{ false }}"><span style="color:{{ t.dueFg }};white-space:nowrap">{{ t.due }}</span></sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+<div style="max-width:800px;margin:0 auto;display:flex;flex-direction:column;gap:24px;animation:pFade 200ms">
+<button onClick="{{ backFromDetail }}" style="align-self:flex-start;display:flex;align-items:center;gap:8px;height:44px;padding:0 8px;margin:-8px 0 -8px -8px;background:none;border:none;border-radius:8px;color:var(--text2);cursor:pointer;font-weight:600" style-hover="background:var(--hover);color:var(--text)">{{ ic.back }}{{ backLabel }}</button>
+
+<section style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:{{ cardPad }};display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:flex-start;gap:8px">
+<div style="flex:1;min-width:0">
+<h1 style="margin:0;font:700 22px/32px Inter, sans-serif;text-wrap:pretty">{{ dp.name }}</h1>
+<div style="color:var(--text2)">{{ dp.client }}</div>
+</div>
+<sc-if value="{{ editable }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ togglePin }}" title="{{ dp.pinTitle }}" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid {{ dp.pinBd }};border-radius:8px;background:{{ dp.pinBg }};color:{{ dp.pinFg }};cursor:pointer;transition:all 150ms">{{ ic.pin }}</button>
+<div style="position:relative">
+<button onClick="{{ toggleDots }}" title="More" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text2);cursor:pointer" style-hover="background:var(--hover);color:var(--text)">{{ ic.more }}</button>
+<sc-if value="{{ dotsOpen }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeMenu }}" style="position:fixed;inset:0;z-index:40"></div>
+<div style="position:absolute;top:52px;right:0;z-index:41;width:224px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px;animation:pFade 150ms">
+<button onClick="{{ openArchive }}" style="width:100%;height:44px;display:flex;align-items:center;gap:8px;padding:0 8px;border:none;border-radius:8px;background:transparent;color:var(--text);cursor:pointer;text-align:left" style-hover="background:var(--hover)">{{ ic.archive }}Archive project</button>
+</div>
+</sc-if>
+</div>
+</sc-if>
+</div>
+<sc-if value="{{ dp.hasDesc }}" hint-placeholder-val="{{ false }}"><div style="color:var(--text2);text-wrap:pretty;margin-top:-8px">{{ dp.desc }}</div></sc-if>
+
+<sc-if value="{{ editable }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center">
+<div style="position:relative">
+<button onClick="{{ toggleMove }}" title="Change whose move" style="display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 8px 0 16px;border-radius:8px;border:1px solid transparent;background:{{ dp.mt }};color:{{ dp.mc }};font-weight:600;cursor:pointer"><span style="width:6px;height:6px;border-radius:50%;background:{{ dp.md }}"></span>{{ dp.badge }}{{ ic.chevDown }}</button>
+<sc-if value="{{ moveOpen }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeMenu }}" style="position:fixed;inset:0;z-index:40"></div>
+<div style="position:absolute;top:52px;left:0;z-index:41;width:240px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px;animation:pFade 150ms">
+<sc-for list="{{ moveOpts }}" as="o" hint-placeholder-count="4">
+<button onClick="{{ o.pick }}" style="width:100%;height:44px;display:flex;align-items:center;gap:8px;padding:0 8px;border:none;border-radius:8px;background:transparent;color:var(--text);cursor:pointer;text-align:left" style-hover="background:var(--hover)"><span style="width:8px;height:8px;border-radius:50%;background:{{ o.dot }}"></span><span style="flex:1">{{ o.label }}</span><span style="color:var(--accent-fg);opacity:{{ o.on }}">{{ ic.check }}</span></button>
+</sc-for>
+</div>
+</sc-if>
+</div>
+<label style="display:flex;align-items:center;gap:8px;color:var(--text2);flex-wrap:wrap">{{ ic.cal }}<span>Next meeting</span>
+<input type="datetime-local" value="{{ dp.meetLocal }}" onFocus="{{ meetFocus }}" onChange="{{ meetChange }}" onBlur="{{ meetBlur }}" style="height:44px;padding:0 8px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);outline:none" style-focus="border-color:var(--accent)">
+</label>
+<sc-if value="{{ dp.missed }}" hint-placeholder-val="{{ false }}"><span style="height:24px;padding:0 8px;border-radius:8px;background:var(--red-t);color:var(--red);font-weight:500;display:inline-flex;align-items:center">Meeting not logged</span></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ readonly }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center">
+<span style="display:inline-flex;align-items:center;gap:8px;height:24px;padding:0 8px;border-radius:8px;background:var(--gray-t);color:var(--text2);font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:var(--gray)"></span>Archived</span>
+<span style="color:var(--text2)">{{ dp.archivedLine }}</span>
+</div>
+<div style="padding:16px;border-radius:8px;background:var(--hover);display:flex;flex-direction:column;gap:8px">
+<div style="font-weight:600">Archive reason</div>
+<div style="text-wrap:pretty">{{ dp.archiveReason }}</div>
+</div>
+<button onClick="{{ openReopen }}" style="align-self:flex-start;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 24px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;transition:background 150ms" style-hover="background:#4338CA">{{ ic.rotate }}Reopen project</button>
+</sc-if>
+</section>
+
+<section style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:{{ cardPad }};display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;gap:8px">
+<h2 style="margin:0;font:600 16px/24px Inter, sans-serif;flex:1">Roadmap</h2>
+<sc-if value="{{ editable }}" hint-placeholder-val="{{ false }}"><button onClick="{{ openRm }}" style="height:44px;padding:0 8px;margin:-8px -8px -8px 0;border:none;border-radius:8px;background:transparent;color:var(--accent-fg);font-weight:600;cursor:pointer" style-hover="background:var(--accent-t)">Edit roadmap</button></sc-if>
+</div>
+<div style="display:flex;flex-direction:{{ stepDir }};gap:8px">
+<sc-for list="{{ steps }}" as="s" hint-placeholder-count="6">
+<div style="display:flex;flex-direction:{{ s.dir }};flex:{{ s.flex }};gap:8px;min-width:0">
+<div style="display:flex;flex-direction:{{ s.inner }};align-items:center;gap:8px">
+<div style="width:32px;height:32px;flex-shrink:0;border-radius:50%;background:{{ s.cbg }};border:2px solid {{ s.cbd }};color:{{ s.cfg }};display:flex;align-items:center;justify-content:center;font-weight:600;transition:all 200ms">
+<sc-if value="{{ s.isDone }}" hint-placeholder-val="{{ false }}">{{ ic.check }}</sc-if>
+<sc-if value="{{ s.notDone }}" hint-placeholder-val="{{ true }}">{{ s.num }}</sc-if>
+</div>
+<sc-if value="{{ s.line }}" hint-placeholder-val="{{ true }}"><div style="flex:1;min-width:{{ s.lmin }};min-height:{{ s.lmin2 }};width:{{ s.lw }};height:{{ s.lh }};background:{{ s.lineBg }};border-radius:1px"></div></sc-if>
+</div>
+<div style="padding-top:{{ s.lpad }};padding-right:8px;display:flex;flex-direction:column;min-width:0">
+<span style="color:{{ s.lfg }};font-weight:{{ s.lfw }}">{{ s.name }}</span>
+<sc-if value="{{ s.isCur }}" hint-placeholder-val="{{ false }}"><span style="color:var(--text2)">Current</span></sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</section>
+
+<sc-if value="{{ editable }}" hint-placeholder-val="{{ false }}">
+<section style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:{{ cardPad }};display:flex;flex-direction:column;gap:16px">
+<h2 style="margin:0;font:600 16px/24px Inter, sans-serif">Add update</h2>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-weight:600">Event type</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px">
+<sc-for list="{{ bx.types }}" as="t" hint-placeholder-count="6">
+<button onClick="{{ t.pick }}" style="display:inline-flex;align-items:center;gap:8px;height:{{ chipH }};padding:0 16px 0 8px;border-radius:8px;border:1px solid {{ t.bd }};background:{{ t.bg }};color:{{ t.fg }};font-weight:500;cursor:pointer;transition:all 150ms;white-space:nowrap">{{ t.icon }}{{ t.label }}</button>
+</sc-for>
+</div>
+</div>
+<label style="display:flex;flex-direction:column;gap:8px"><span style="font-weight:600">Status label</span><input list="pulse-labels" value="{{ bx.label }}" onChange="{{ bx.setLabel }}" placeholder="e.g. Design v2 sent" style="height:44px;padding:0 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);outline:none;width:100%;transition:border-color 150ms" style-focus="border-color:var(--accent)"></label>
+<label style="display:flex;flex-direction:column;gap:8px"><span style="font-weight:600">Note</span><textarea value="{{ bx.note }}" onChange="{{ bx.setNote }}" rows="3" placeholder="What happened, and what's next?" style="min-height:96px;padding:8px 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);outline:none;width:100%;resize:vertical;line-height:24px;transition:border-color 150ms" style-focus="border-color:var(--accent)"></textarea></label>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-weight:600">Whose move?</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px">
+<sc-for list="{{ bx.moves }}" as="m" hint-placeholder-count="4">
+<button onClick="{{ m.pick }}" style="display:inline-flex;align-items:center;gap:8px;height:{{ chipH }};padding:0 16px;border-radius:8px;border:1px solid {{ m.bd }};background:{{ m.bg }};color:{{ m.fg }};font-weight:500;cursor:pointer;transition:all 150ms;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:{{ m.dot }}"></span>{{ m.label }}</button>
+</sc-for>
+</div>
+</div>
+<div style="display:flex;justify-content:flex-end">
+<button onClick="{{ bx.post }}" disabled="{{ bx.disabled }}" style="height:44px;padding:0 24px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;opacity:{{ bx.op }};transition:opacity 150ms">Post update</button>
+</div>
+</section>
+</sc-if>
+
+<section style="display:flex;flex-direction:column;gap:16px">
+<h2 style="margin:0;font:600 16px/24px Inter, sans-serif">Timeline</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px">
+<sc-for list="{{ tfChips }}" as="c" hint-placeholder-count="8">
+<button onClick="{{ c.pick }}" style="height:{{ chipH }};padding:0 16px;border-radius:8px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font-weight:500;cursor:pointer;transition:all 150ms;white-space:nowrap">{{ c.label }}</button>
+</sc-for>
+</div>
+<sc-if value="{{ tlEmpty }}" hint-placeholder-val="{{ false }}"><div style="background:var(--card);border:1px solid var(--border);border-radius:12px">{{ joyTl }}</div></sc-if>
+<div style="display:flex;flex-direction:column">
+<sc-for list="{{ tlGroups }}" as="g" hint-placeholder-count="2">
+<div style="font-weight:600;color:var(--text2);padding:8px 0 16px">{{ g.label }}</div>
+<sc-for list="{{ g.items }}" as="e" hint-placeholder-count="2">
+<div style="display:flex;gap:16px">
+<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+<div style="width:40px;height:40px;border-radius:50%;border:1px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;color:var(--text2)">{{ e.icon }}</div>
+<div style="flex:1;width:1px;background:var(--border);min-height:16px"></div>
+</div>
+<div style="flex:1;min-width:0;padding:8px 0 24px;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+<span style="font-weight:600">{{ e.typeLabel }}</span>
+<sc-if value="{{ e.hasLabel }}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;align-items:center;gap:8px;height:24px;padding:0 8px;border-radius:8px;background:{{ e.mt }};color:{{ e.mc }};font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:{{ e.md }}"></span>{{ e.label }}</span></sc-if>
+<span style="margin-left:auto;color:var(--text2);white-space:nowrap">{{ e.time }}</span>
+</div>
+<sc-if value="{{ e.hasNote }}" hint-placeholder-val="{{ true }}"><div style="text-wrap:pretty;line-height:24px">{{ e.note }}</div></sc-if>
+</div>
+</div>
+</sc-for>
+</sc-for>
+</div>
+</section>
+</div>
+</sc-if>
+
+</main>
+
+<sc-if value="{{ mob }}" hint-placeholder-val="{{ false }}">
+<nav style="position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));padding-bottom:env(safe-area-inset-bottom)">
+<sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+<button onClick="{{ t.go }}" style="height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:none;border:none;color:{{ t.fg }};font-weight:600;cursor:pointer;transition:color 150ms">{{ t.icon }}<span>{{ t.label }}</span></button>
+</sc-for>
+</nav>
+<button onClick="{{ fab }}" title="Add update" style="position:fixed;right:16px;bottom:80px;z-index:31;width:56px;height:56px;border-radius:50%;border:none;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">{{ ic.plus }}</button>
+</sc-if>
+
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;left:50%;bottom:{{ toastBottom }};transform:translateX(-50%);z-index:80;background:var(--text);color:var(--bg);padding:8px 16px;border-radius:8px;font-weight:500;animation:pRise 180ms ease-out;max-width:calc(100vw - 32px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ toast }}</div>
+</sc-if>
+
+<sc-if value="{{ anyModal }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:60;background:var(--scrim);animation:pFade 150ms"></div>
+</sc-if>
+
+<sc-if value="{{ isUpdate }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;z-index:61;top:{{ sh.top }};right:{{ sh.right }};bottom:{{ sh.bottom }};left:{{ sh.left }};width:{{ sh.width }};max-height:{{ sh.maxh }};transform:{{ sh.transform }};border-radius:{{ sh.radius }};animation:{{ sh.anim }};background:var(--card);border:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden">
+<div style="display:flex;align-items:center;gap:8px;padding:8px 8px 8px 24px;border-bottom:1px solid var(--border)">
+<div style="flex:1;font:600 16px/24px Inter, sans-serif">Add update</div>
+<button onClick="{{ closeModal }}" title="Close" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:none;border-radius:8px;background:transparent;color:var(--text2);cursor:pointer" style-hover="background:var(--hover)">{{ ic.x }}</button>
+</div>
+<div style="flex:1;overflow:auto;padding:24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-weight:600">Project</div>
+<sc-if value="{{ mf.fixed }}" hint-placeholder-val="{{ false }}"><div style="height:44px;padding:0 16px;border-radius:8px;background:var(--hover);display:flex;align-items:center;font-weight:600">{{ mf.pname }}</div></sc-if>
+<sc-if value="{{ mf.picker }}" hint-placeholder-val="{{ false }}">{{ mfProjSel }}</sc-if>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-weight:600">Event type</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px">
+<sc-for list="{{ mf.types }}" as="t" hint-placeholder-count="6">
+<button onClick="{{ t.pick }}" style="display:inline-flex;align-items:center;gap:8px;height:{{ chipH }};padding:0 16px 0 8px;border-radius:8px;border:1px solid {{ t.bd }};background:{{ t.bg }};color:{{ t.fg }};font-weight:500;cursor:pointer;transition:all 150ms;white-space:nowrap">{{ t.icon }}{{ t.label }}</button>
+</sc-for>
+</div>
+</div>
+<label style="display:flex;flex-direction:column;gap:8px"><span style="font-weight:600">Status label</span><input list="pulse-labels" value="{{ mf.label }}" onChange="{{ mf.setLabel }}" placeholder="e.g. Design v2 sent" style="height:44px;padding:0 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);outline:none;width:100%;transition:border-color 150ms" style-focus="border-color:var(--accent)"></label>
+<label style="display:flex;flex-direction:column;gap:8px"><span style="font-weight:600">Note</span><textarea value="{{ mf.note }}" onChange="{{ mf.setNote }}" rows="4" placeholder="What happened, and what's next?" style="min-height:112px;padding:8px 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);outline:none;width:100%;resize:vertical;line-height:24px;transition:border-color 150ms" style-focus="border-color:var(--accent)"></textarea></label>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-weight:600">Whose move?</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px">
+<sc-for list="{{ mf.moves }}" as="m" hint-placeholder-count="4">
+<button onClick="{{ m.pick }}" style="display:inline-flex;align-items:center;gap:8px;height:{{ chipH }};padding:0 16px;border-radius:8px;border:1px solid {{ m.bd }};background:{{ m.bg }};color:{{ m.fg }};font-weight:500;cursor:pointer;transition:all 150ms;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:{{ m.dot }}"></span>{{ m.label }}</button>
+</sc-for>
+</div>
+</div>
+</div>
+<div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 24px;border-top:1px solid var(--border)">
+<button onClick="{{ closeModal }}" style="height:44px;padding:0 16px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text);font-weight:600;cursor:pointer" style-hover="background:var(--hover)">Cancel</button>
+<button onClick="{{ mf.post }}" disabled="{{ mf.disabled }}" style="height:44px;padding:0 24px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;opacity:{{ mf.op }};transition:opacity 150ms">Post update</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isReason }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;z-index:61;top:{{ dl.top }};right:{{ dl.right }};bottom:{{ dl.bottom }};left:{{ dl.left }};width:{{ dl.width }};max-height:{{ dl.maxh }};transform:{{ dl.transform }};border-radius:{{ dl.radius }};animation:{{ dl.anim }};background:var(--card);border:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden">
+<div style="padding:24px;display:flex;flex-direction:column;gap:16px;overflow:auto">
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font:600 16px/24px Inter, sans-serif;text-wrap:pretty">{{ rs.title }}</div>
+<div style="color:var(--text2);text-wrap:pretty">{{ rs.help }}</div>
+</div>
+<label style="display:flex;flex-direction:column;gap:8px"><span style="font-weight:600">{{ rs.question }}</span><textarea value="{{ reason }}" onChange="{{ setReason }}" rows="4" placeholder="Required" style="min-height:112px;padding:8px 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);outline:none;width:100%;resize:vertical;line-height:24px;transition:border-color 150ms" style-focus="border-color:var(--accent)"></textarea></label>
+</div>
+<div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 24px;border-top:1px solid var(--border)">
+<button onClick="{{ closeModal }}" style="height:44px;padding:0 16px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text);font-weight:600;cursor:pointer" style-hover="background:var(--hover)">Cancel</button>
+<button onClick="{{ rs.confirm }}" disabled="{{ rs.disabled }}" style="height:44px;padding:0 24px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;opacity:{{ rs.op }};transition:opacity 150ms">{{ rs.cta }}</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isNew }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;z-index:61;top:{{ dl.top }};right:{{ dl.right }};bottom:{{ dl.bottom }};left:{{ dl.left }};width:{{ dl.width }};max-height:{{ dl.maxh }};transform:{{ dl.transform }};border-radius:{{ dl.radius }};animation:{{ dl.anim }};background:var(--card);border:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden">
+<div style="display:flex;align-items:center;gap:8px;padding:8px 8px 8px 24px;border-bottom:1px solid var(--border)">
+<div style="flex:1;font:600 16px/24px Inter, sans-serif">New project</div>
+<button onClick="{{ closeModal }}" title="Close" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:none;border-radius:8px;background:transparent;color:var(--text2);cursor:pointer" style-hover="background:var(--hover)">{{ ic.x }}</button>
+</div>
+<div style="flex:1;overflow:auto;padding:24px;display:flex;flex-direction:column;gap:16px">
+<label style="display:flex;flex-direction:column;gap:8px"><span style="font-weight:600">Project name</span><input value="{{ np.name }}" onChange="{{ np.setName }}" placeholder="e.g. Clinic booking site" style="height:44px;padding:0 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);outline:none;width:100%" style-focus="border-color:var(--accent)"></label>
+<label style="display:flex;flex-direction:column;gap:8px"><span style="font-weight:600">Client name</span><input value="{{ np.client }}" onChange="{{ np.setClient }}" placeholder="e.g. Royal Housing Ltd." style="height:44px;padding:0 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);outline:none;width:100%" style-focus="border-color:var(--accent)"></label>
+<label style="display:flex;flex-direction:column;gap:8px"><span style="font-weight:600">Description</span><textarea value="{{ np.desc }}" onChange="{{ np.setDesc }}" rows="2" placeholder="One line about the project" style="min-height:72px;padding:8px 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);outline:none;width:100%;resize:vertical;line-height:24px" style-focus="border-color:var(--accent)"></textarea></label>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-weight:600">Roadmap template</div>
+<sc-for list="{{ np.tpls }}" as="t" hint-placeholder-count="3">
+<button onClick="{{ t.pick }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:8px 16px;min-height:56px;justify-content:center;border-radius:8px;border:1px solid {{ t.bd }};background:{{ t.bg }};cursor:pointer;text-align:left;transition:all 150ms"><span style="font-weight:600;color:{{ t.fg }}">{{ t.label }}</span><span style="color:var(--text2)">{{ t.steps }}</span></button>
+</sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-weight:600">Whose move?</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px">
+<sc-for list="{{ np.moves }}" as="m" hint-placeholder-count="4">
+<button onClick="{{ m.pick }}" style="display:inline-flex;align-items:center;gap:8px;height:{{ chipH }};padding:0 16px;border-radius:8px;border:1px solid {{ m.bd }};background:{{ m.bg }};color:{{ m.fg }};font-weight:500;cursor:pointer;transition:all 150ms;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:{{ m.dot }}"></span>{{ m.label }}</button>
+</sc-for>
+</div>
+</div>
+<label style="display:flex;flex-direction:column;gap:8px"><span style="font-weight:600">Next meeting (optional)</span><input type="datetime-local" value="{{ np.meet }}" onChange="{{ np.setMeet }}" style="height:44px;padding:0 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);outline:none;width:100%" style-focus="border-color:var(--accent)"></label>
+</div>
+<div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 24px;border-top:1px solid var(--border)">
+<button onClick="{{ closeModal }}" style="height:44px;padding:0 16px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text);font-weight:600;cursor:pointer" style-hover="background:var(--hover)">Cancel</button>
+<button onClick="{{ np.create }}" disabled="{{ np.disabled }}" style="height:44px;padding:0 24px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;opacity:{{ np.op }};transition:opacity 150ms">Create project</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isRm }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;z-index:61;top:{{ dl.top }};right:{{ dl.right }};bottom:{{ dl.bottom }};left:{{ dl.left }};width:{{ dl.width }};max-height:{{ dl.maxh }};transform:{{ dl.transform }};border-radius:{{ dl.radius }};animation:{{ dl.anim }};background:var(--card);border:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden">
+<div style="display:flex;align-items:center;gap:8px;padding:8px 8px 8px 24px;border-bottom:1px solid var(--border)">
+<div style="flex:1;font:600 16px/24px Inter, sans-serif">Edit roadmap</div>
+<button onClick="{{ closeModal }}" title="Close" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:none;border-radius:8px;background:transparent;color:var(--text2);cursor:pointer" style-hover="background:var(--hover)">{{ ic.x }}</button>
+</div>
+<div style="flex:1;overflow:auto;padding:16px 24px;display:flex;flex-direction:column;gap:8px">
+<div style="color:var(--text2);padding-bottom:8px">Rename, reorder or add milestones. Select the circle to mark the current one.</div>
+<sc-for list="{{ rmRows }}" as="r" hint-placeholder-count="6">
+<div style="display:flex;align-items:center;gap:0">
+<button onClick="{{ r.setCur }}" title="Mark as current" style="width:44px;height:44px;flex-shrink:0;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0"><span style="width:20px;height:20px;border-radius:50%;border:2px solid {{ r.rbd }};display:flex;align-items:center;justify-content:center"><span style="width:10px;height:10px;border-radius:50%;background:{{ r.rdot }}"></span></span></button>
+<input value="{{ r.name }}" onChange="{{ r.setName }}" style="flex:1;min-width:0;height:44px;padding:0 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);outline:none;margin-right:8px" style-focus="border-color:var(--accent)">
+<button onClick="{{ r.up }}" title="Move up" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:none;border-radius:8px;background:transparent;color:var(--text2);cursor:pointer;opacity:{{ r.upOp }}" style-hover="background:var(--hover)">{{ ic.chevUp }}</button>
+<button onClick="{{ r.down }}" title="Move down" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:none;border-radius:8px;background:transparent;color:var(--text2);cursor:pointer;opacity:{{ r.downOp }}" style-hover="background:var(--hover)">{{ ic.chevDown }}</button>
+<button onClick="{{ r.remove }}" title="Remove milestone" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:none;border-radius:8px;background:transparent;color:var(--text2);cursor:pointer" style-hover="background:var(--hover)">{{ ic.x }}</button>
+</div>
+</sc-for>
+<button onClick="{{ rmAdd }}" style="align-self:flex-start;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 8px;border:none;border-radius:8px;background:transparent;color:var(--accent-fg);font-weight:600;cursor:pointer" style-hover="background:var(--accent-t)">{{ ic.plus }}Add milestone</button>
+</div>
+<div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 24px;border-top:1px solid var(--border)">
+<button onClick="{{ closeModal }}" style="height:44px;padding:0 16px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text);font-weight:600;cursor:pointer" style-hover="background:var(--hover)">Cancel</button>
+<button onClick="{{ rmSave }}" style="height:44px;padding:0 24px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer">Save roadmap</button>
+</div>
+</div>
+</sc-if>
+
+<datalist id="pulse-labels">
+<sc-for list="{{ labels }}" as="l" hint-placeholder-count="0"><option value="{{ l.v }}"></option></sc-for>
+</datalist>
+
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+let UID = 1000;
+const NOW = new Date(2026, 9, 23, 11, 0).getTime(), DAY = 864e5;
+const D = s => { const [d, t = '00:00'] = s.split(' '); const [y, m, dd] = d.split('-').map(Number); const [h, mi] = t.split(':').map(Number); return new Date(y, m - 1, dd, h, mi).getTime(); };
+const sod = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+const daysAgo = t => Math.round((sod(NOW) - sod(t)) / DAY);
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const WDL = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const fT = t => { const d = new Date(t); let h = d.getHours(); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + String(d.getMinutes()).padStart(2, '0') + ' ' + ap; };
+const fDay = t => { const d = new Date(t); return WD[d.getDay()] + ', ' + d.getDate() + ' ' + MON[d.getMonth()]; };
+const fMeet = t => fDay(t) + ', ' + fT(t);
+const fDate = t => { const d = new Date(t); return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear(); };
+const fAgo = t => { const n = daysAgo(t); return n <= 0 ? 'today' : n === 1 ? 'yesterday' : n + 'd ago'; };
+const fDays = n => n <= 0 ? 'since today' : n === 1 ? '1 day' : n + ' days';
+const pad = n => String(n).padStart(2, '0');
+const toLocal = t => { if (!t) return ''; const d = new Date(t); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+const nowStamp = () => { const r = new Date(); return new Date(2026, 9, 23, r.getHours(), r.getMinutes(), r.getSeconds()).getTime(); };
+
+const MOVES = {
+  us: { label: 'Waiting on us', c: 'var(--orange)', d: 'var(--orange)', t: 'var(--orange-t)' },
+  client: { label: 'Waiting on client', c: 'var(--blue)', d: 'var(--blue)', t: 'var(--blue-t)' },
+  none: { label: 'No action', c: 'var(--text2)', d: 'var(--gray)', t: 'var(--gray-t)' },
+  blocked: { label: 'Blocked', c: 'var(--red)', d: 'var(--red)', t: 'var(--red-t)' },
+  archived: { label: 'Archived', c: 'var(--text2)', d: 'var(--gray)', t: 'var(--gray-t)' },
+  done: { label: 'Done', c: 'var(--green)', d: 'var(--green)', t: 'var(--green-t)' }
+};
+const MOVE_KEYS = ['us', 'client', 'none', 'blocked'];
+const TYPES = {
+  call: { label: 'Call', ic: 'phone' }, meeting: { label: 'Meeting', ic: 'users' }, dev: { label: 'Development', ic: 'code' },
+  delivery: { label: 'Delivery', ic: 'packageCheck' }, feedback: { label: 'Client feedback', ic: 'message' }, note: { label: 'Note', ic: 'sticky' },
+  archived: { label: 'Archived', ic: 'archive' }, reopened: { label: 'Reopened', ic: 'rotate' }
+};
+const TYPE_KEYS = ['call', 'meeting', 'dev', 'delivery', 'feedback', 'note'];
+const STD = ['SRS', 'Design', 'Development', 'Testing', 'Delivery', 'Maintenance'];
+const ROADMAPS = {
+  std: { label: 'Web / software', steps: STD },
+  content: { label: 'Content / channel', steps: ['Planning', 'Scripting', 'Production', 'Review', 'Publishing'] },
+  simple: { label: 'Simple', steps: ['Kickoff', 'Build', 'Delivery'] }
+};
+
+const P = {
+  phone: ['M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z'],
+  users: ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2', 'M22 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75'],
+  code: ['m16 18 6-6-6-6', 'm8 6-6 6 6 6'],
+  packageCheck: ['m16 16 2 2 4-4', 'M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14', 'm7.5 4.27 9 5.15', 'M3.29 7 12 12l8.71-5', 'M12 22V12'],
+  message: ['M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'],
+  sticky: ['M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z', 'M15 3v6h6'],
+  archive: ['M3 3h18a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z', 'M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8', 'M10 12h4'],
+  rotate: ['M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8', 'M3 3v5h5'],
+  sun: ['M12 2v2', 'M12 20v2', 'm4.93 4.93 1.41 1.41', 'm17.66 17.66 1.41 1.41', 'M2 12h2', 'M20 12h2', 'm6.34 17.66-1.41 1.41', 'm19.07 4.93-1.41 1.41'],
+  moon: ['M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'],
+  plus: ['M5 12h14', 'M12 5v14'],
+  search: ['m21 21-4.3-4.3'],
+  pin: ['M12 17v5', 'M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z'],
+  more: [], check: ['M20 6 9 17l-5-5'], x: ['M18 6 6 18', 'm6 6 12 12'], chevDown: ['m6 9 6 6 6-6'], chevUp: ['m18 15-6-6-6 6'],
+  cal: ['M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', 'M16 2v4', 'M8 2v4', 'M3 10h18'],
+  logout: ['M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4', 'm16 17 5-5-5-5', 'M21 12H9'],
+  inbox: ['M22 12h-6l-2 3h-4l-2-3H2', 'M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z'],
+  grid: ['M4 3h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z', 'M15 3h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z', 'M15 14h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1z', 'M4 14h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1z'],
+  tasks: ['m3 17 2 2 4-4', 'm3 7 2 2 4-4', 'M13 6h8', 'M13 12h8', 'M13 18h8'],
+  back: ['m12 19-7-7 7-7', 'M19 12H5']
+};
+const CI = { users: [[9, 7, 4]], sun: [[12, 12, 4]], search: [[11, 11, 8]], more: [[12, 12, 1], [19, 12, 1], [5, 12, 1]] };
+const buildIcons = () => {
+  const h = React.createElement, o = {};
+  Object.keys(P).forEach(n => {
+    o[n] = h('svg', { key: n, width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true, style: { display: 'block', flexShrink: 0 } },
+      ...P[n].map((d, i) => h('path', { key: 'p' + i, d })), ...(CI[n] || []).map((c, i) => h('circle', { key: 'c' + i, cx: c[0], cy: c[1], r: c[2] })));
+  });
+  o.checkSm = h('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 3, strokeLinecap: 'round', strokeLinejoin: 'round', style: { display: 'block' } }, h('path', { d: 'M20 6 9 17l-5-5' }));
+  return o;
+};
+
+const joy = (text) => {
+  const h = React.createElement, ink = 'var(--text2)';
+  const spark = (rot, delay) => h('div', { key: rot, style: { position: 'absolute', left: 35, top: 2, width: 2, height: 50, transform: `rotate(${rot}deg)`, transformOrigin: '1px 50px' } },
+    h('div', { style: { width: 2, height: 8, borderRadius: 1, background: ink, animation: `pSpark 1.6s ease-out ${delay}s infinite` } }));
+  return h('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 16px 32px', color: ink } },
+    h('div', { style: { position: 'relative', width: 72, height: 88 } },
+      spark(-40, 0), spark(0, 0.06), spark(40, 0.12),
+      h('div', { style: { position: 'absolute', left: 16, top: 32, width: 40, height: 40, borderRadius: '50%', border: `2px solid ${ink}`, background: 'var(--card)', animation: 'pBounce 1.6s ease-in-out infinite', transformOrigin: '50% 100%' } },
+        h('div', { style: { position: 'absolute', top: 12, left: 10, width: 4, height: 6, borderRadius: 2, background: ink, animation: 'pBlink 3.2s infinite' } }),
+        h('div', { style: { position: 'absolute', top: 12, right: 10, width: 4, height: 6, borderRadius: 2, background: ink, animation: 'pBlink 3.2s infinite' } }),
+        h('div', { style: { position: 'absolute', top: 21, left: 11, width: 14, height: 7, border: `2px solid ${ink}`, borderTop: 'none', borderRadius: '0 0 10px 10px' } })),
+      h('div', { style: { position: 'absolute', left: 24, top: 80, width: 24, height: 4, borderRadius: '50%', background: 'var(--border)', animation: 'pShadow 1.6s ease-in-out infinite' } })),
+    h('div', null, text));
+};
+
+const E = (type, at, label, note, move) => ({ id: 'e' + (UID++), type, at: D(at), label, note, move });
+const seed = () => [
+  { id: 'ashes', name: 'AshesMart', client: 'Ashes Group', desc: 'E-commerce store with a referral rewards program.', move: 'us', moveSince: D('2026-10-21 10:05'), pinned: true, nextMeeting: D('2026-10-28 16:00'), roadmap: [...STD], cur: 2, entries: [
+    E('feedback', '2026-10-21 10:05', 'Referral bug reported', 'Referral credit is not applied when the invited customer pays with bKash.', 'us'),
+    E('dev', '2026-10-19 15:30', 'Referral module on staging', 'Referral links, tracking and wallet credit merged to staging for review.', 'client'),
+    E('meeting', '2026-10-16 11:00', 'Sprint review', 'Walked through checkout and product filters. Approved. Leaderboard moved to phase 2.', 'us'),
+    E('dev', '2026-10-12 17:20', 'Checkout ready', 'Checkout with bKash and cash on delivery working on staging.', 'us'),
+    E('call', '2026-10-08 12:00', 'Gateway credentials', 'Their accountant will send SSLCommerz credentials this week.', 'us'),
+    E('note', '2026-10-03 10:30', 'Design approved', 'Final Figma screens signed off by the client.', 'us')] },
+  { id: 'royal', name: 'Royal Housing BD', client: 'Royal Housing Ltd.', desc: 'Real-estate website redesign with a new property search.', move: 'client', moveSince: D('2026-10-17 14:00'), pinned: false, nextMeeting: D('2026-10-20 11:00'), roadmap: [...STD], cur: 1, entries: [
+    E('delivery', '2026-10-17 14:00', 'Homepage v2 sent', 'Sent homepage and listing page v2 with the new search bar.', 'client'),
+    E('dev', '2026-10-14 16:00', 'Listing cards', 'Property cards now show price per sqft and handover date.', 'us'),
+    E('feedback', '2026-10-10 12:30', 'Revisions requested', 'Wants larger project photos and a Bangla toggle in the header.', 'us'),
+    E('meeting', '2026-10-06 11:00', 'Kickoff', 'Collected brand assets. 14 ongoing projects to feature.', 'us'),
+    E('call', '2026-10-04 09:30', 'Scope confirmed', 'Redesign only. No CMS migration in this phase.', 'client')] },
+  { id: 'nfc', name: 'NFC Tap Menu', client: 'Kacchi House, Dhanmondi', desc: 'NFC table cards that open the restaurant menu on any phone.', move: 'client', moveSince: D('2026-10-20 18:00'), pinned: false, nextMeeting: D('2026-10-25 15:00'), roadmap: [...STD], cur: 3, entries: [
+    E('delivery', '2026-10-20 18:00', 'Test cards delivered', '20 programmed NFC cards handed over for table testing.', 'client'),
+    E('dev', '2026-10-18 13:00', 'Live menu sync', 'Menu editor now updates the public menu instantly.', 'us'),
+    E('call', '2026-10-15 20:00', 'Card printing', 'Printer confirmed matte finish with a 3 day turnaround.', 'us'),
+    E('feedback', '2026-10-11 15:00', 'Final menu received', '46 items with prices and photos.', 'us'),
+    E('meeting', '2026-10-07 12:00', 'Demo at restaurant', 'Tap flow tested on iPhone and Android. Both worked.', 'us')] },
+  { id: 'fec', name: 'FEC ERP', client: 'FEC Administration', desc: 'College ERP for admission, fees, results and transcripts.', move: 'client', moveSince: D('2026-10-13 12:00'), pinned: false, nextMeeting: null, roadmap: [...STD], cur: 3, entries: [
+    E('delivery', '2026-10-13 12:00', 'UAT build shared', 'Admission, fees and results modules are live on the UAT server.', 'client'),
+    E('dev', '2026-10-12 18:00', 'Results module', 'GPA calculation matches last semester\u2019s result sheets.', 'us'),
+    E('meeting', '2026-10-09 11:00', 'Registrar review', 'Registrar asked for a printable transcript format.', 'us'),
+    E('call', '2026-10-05 10:00', 'Student data', 'Received the student list in Excel, 2,340 rows.', 'us'),
+    E('note', '2026-10-02 16:00', 'Hosting', 'College IT will provide a VPS. Access pending.', 'us')] },
+  { id: 'shikhon', name: 'Shikhon', client: 'Shikhon Edtech', desc: 'School and madrasa management SaaS.', move: 'us', moveSince: D('2026-10-22 16:00'), pinned: true, nextMeeting: D('2026-10-30 11:00'), roadmap: [...STD], cur: 2, entries: [
+    E('feedback', '2026-10-22 16:00', 'Attendance SMS', 'Wants an SMS to parents when a student is absent twice in a week.', 'us'),
+    E('dev', '2026-10-21 12:00', 'Fee reports', 'Monthly fee collection report and due list, exportable to PDF.', 'client'),
+    E('meeting', '2026-10-17 10:00', 'Weekly sync', 'Attendance and SMS come before the exam module.', 'us'),
+    E('dev', '2026-10-13 15:00', 'Multi-branch', 'Branch switcher and per-branch roles done.', 'us'),
+    E('call', '2026-10-08 11:30', 'Pilot pricing', 'Discussed per-student pricing for the pilot madrasas.', 'us'),
+    E('note', '2026-10-04 14:00', 'Pilot list', 'Three madrasas in Chattogram agreed to pilot.', 'us')] },
+  { id: 'sirat', name: 'Sirater Pothe', client: 'Internal', desc: 'Seerah timeline website.', move: 'none', moveSince: D('2026-10-19 21:00'), pinned: false, nextMeeting: null, roadmap: [...STD], cur: 5, entries: [
+    E('delivery', '2026-10-19 21:00', 'Chapter 3 published', 'Madinan period timeline with 38 events is live.', 'none'),
+    E('dev', '2026-10-15 22:00', 'Hijrah map', 'Added the migration route map to the Hijrah chapter.', 'us'),
+    E('note', '2026-10-10 20:00', 'Sources checked', 'Cross-checked dates against Ar-Raheeq Al-Makhtum.', 'us'),
+    E('dev', '2026-10-05 21:30', 'Year scrubber', 'Smooth year scrubber on mobile.', 'us')] },
+  { id: 'ledger', name: 'Income/Expense SaaS', client: 'Internal product', desc: 'Bookkeeping for madrasas.', move: 'us', moveSince: D('2026-10-16 11:00'), pinned: false, nextMeeting: null, roadmap: [...STD], cur: 2, entries: [
+    E('note', '2026-10-16 11:00', 'Paused for Shikhon', 'Paused to finish Shikhon fee reports. Resume with voucher printing.', 'us'),
+    E('dev', '2026-10-13 17:00', 'Voucher entry', 'Income and expense vouchers with categories.', 'us'),
+    E('call', '2026-10-09 12:00', 'Accountant interview', 'Spoke with a madrasa accountant about tracking Zakat funds separately.', 'us'),
+    E('note', '2026-10-03 10:00', 'MVP scope', 'Vouchers, monthly summary and donor receipts.', 'us')] },
+  { id: 'bunny', name: 'Bunny Kids World', client: 'Bunny Kids World', desc: 'Kids YouTube channel with animated rhymes and stories.', move: 'client', moveSince: D('2026-10-21 19:00'), pinned: false, nextMeeting: D('2026-10-24 17:00'), roadmap: [...ROADMAPS.content.steps], cur: 2, entries: [
+    E('delivery', '2026-10-21 19:00', 'Episode 12 draft', 'Sent the animated rhyme draft for review.', 'client'),
+    E('dev', '2026-10-19 14:00', 'Character rigs', 'Finished rigs for Bunny and Toto.', 'us'),
+    E('feedback', '2026-10-15 18:00', 'Thumbnail notes', 'Wants brighter thumbnails with larger faces.', 'us'),
+    E('meeting', '2026-10-11 16:00', 'November plan', 'Planned 8 episodes for November.', 'us'),
+    E('call', '2026-10-06 12:00', 'Voice artist', 'Booked the voice artist for two sessions a month.', 'us')] },
+  { id: 'dental', name: 'Dhaka Dental Care', client: 'Dr. Farhana Islam', desc: 'Clinic website with appointment booking.', move: 'none', moveSince: D('2026-09-12 15:00'), pinned: false, nextMeeting: null, roadmap: [...STD], cur: 2, archived: true, archiveReason: 'Client paused budget until next year. Design and booking prototype are saved for a restart.', archivedAt: D('2026-09-12 15:00'), entries: [
+    E('archived', '2026-09-12 15:00', 'Archived', 'Client paused budget until next year. Design and booking prototype are saved for a restart.', 'archived'),
+    E('call', '2026-09-10 11:00', 'Budget on hold', 'Clinic is opening a second branch and paused all marketing spend.', 'us'),
+    E('delivery', '2026-09-03 17:00', 'Booking prototype', 'Shared the clickable booking flow.', 'client'),
+    E('dev', '2026-08-27 16:00', 'Booking flow', 'Doctor schedule and slot picker built.', 'us'),
+    E('meeting', '2026-08-20 12:00', 'Kickoff', 'Agreed on 6 pages and online booking.', 'us')] },
+  { id: 'tours', name: 'Green Leaf Tours', client: 'Green Leaf Travels', desc: 'Travel agency site with tour packages.', move: 'none', moveSince: D('2026-10-09 13:00'), pinned: false, nextMeeting: null, roadmap: [...STD], cur: 5, archived: true, archiveReason: 'Delivered and handed over. Their in-house team now maintains the site.', archivedAt: D('2026-10-09 13:00'), entries: [
+    E('archived', '2026-10-09 13:00', 'Archived', 'Delivered and handed over. Their in-house team now maintains the site.', 'archived'),
+    E('feedback', '2026-10-02 10:00', 'Sign-off', 'Client confirmed everything works and signed off.', 'none'),
+    E('delivery', '2026-09-28 18:00', 'Site launched', 'Live on their domain with 24 tour packages.', 'client'),
+    E('dev', '2026-09-20 15:00', 'Package pages', 'Itinerary, pricing and inquiry form for each package.', 'us')] }
+];
+const seedTasks = () => [
+  { id: 't1', title: 'Fix referral credit for bKash payments', pid: 'ashes', due: D('2026-10-24'), done: false },
+  { id: 't2', title: 'Draft attendance SMS template', pid: 'shikhon', due: D('2026-10-22'), done: false },
+  { id: 't3', title: 'Remind Royal Housing about v2 feedback', pid: 'royal', due: D('2026-10-23'), done: false },
+  { id: 't4', title: 'Prepare notes for the Bunny Kids meeting', pid: 'bunny', due: D('2026-10-24'), done: false },
+  { id: 't5', title: 'Renew Sirater Pothe domain', pid: 'sirat', due: D('2026-10-30'), done: false },
+  { id: 't6', title: 'Send invoice reminders', pid: '', due: null, done: false },
+  { id: 't7', title: 'Share FEC UAT logins with the registrar', pid: 'fec', due: D('2026-10-13'), done: true }
+];
+const chip = on => on ? { bd: 'var(--accent)', fg: 'var(--accent-fg)', bg: 'var(--accent-t)' } : { bd: 'var(--border)', fg: 'var(--text2)', bg: 'transparent' };
+
+class Component extends DCLogic {
+  state = { screen: 'login', email: '', pw: '', projects: seed(), tasks: seedTasks(), theme: 'light', w: window.innerWidth, q: '', pf: 'all', detailId: null, from: 'projects', tf: 'all', box: null, modal: null, mf: null, menu: null, reason: '', taskTab: 'open', nt: { title: '', pid: '', due: '' }, np: null, rm: null, toast: '' };
+
+  componentDidMount() {
+    this.onR = () => this.setState({ w: window.innerWidth });
+    this.onK = e => { if (e.key === 'Escape') this.setState({ modal: null, menu: null }); };
+    window.addEventListener('resize', this.onR); window.addEventListener('keydown', this.onK);
+    document.documentElement.dataset.theme = this.state.theme;
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this.onR); window.removeEventListener('keydown', this.onK); clearTimeout(this.tt); }
+
+  proj(id) { return this.state.projects.find(p => p.id === id); }
+  updProj(id, fn) { this.setState(s => ({ projects: s.projects.map(p => p.id === id ? fn(p) : p) })); }
+  addEntry(id, entry, patch = {}) { this.updProj(id, p => ({ ...p, ...patch, entries: [{ id: 'e' + (UID++), at: nowStamp(), ...entry }, ...p.entries] })); }
+  flash(msg) { clearTimeout(this.tt); this.setState({ toast: msg }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2400); }
+  go(screen) { this.setState({ screen, menu: null }); window.scrollTo(0, 0); }
+  openDetail(id) {
+    const p = this.proj(id);
+    this.setState({ screen: 'detail', detailId: id, from: p.archived ? 'archived' : 'projects', tf: 'all', box: { type: 'note', label: '', note: '', move: p.move }, menu: null });
+    window.scrollTo(0, 0);
+  }
+  openUpdate(pid, preset = {}) {
+    const p = pid ? this.proj(pid) : null;
+    this.setState({ modal: 'update', menu: null, mf: { pid: pid || '', fixed: !!pid, type: 'note', label: '', note: '', move: p ? p.move : 'us', ...preset } });
+  }
+  post(f) {
+    const p = this.proj(f.pid); if (!p) return;
+    const patch = f.move !== p.move ? { move: f.move, moveSince: nowStamp() } : {};
+    this.addEntry(f.pid, { type: f.type, label: f.label.trim() || TYPES[f.type].label, note: f.note.trim(), move: f.move }, patch);
+    this.flash('Update posted to ' + p.name);
+  }
+  form(f, set, post, ic) {
+    const ok = !!(f.label.trim() || f.note.trim()) && !!f.pid;
+    return { ...f,
+      types: TYPE_KEYS.map(k => ({ key: k, label: TYPES[k].label, icon: ic[TYPES[k].ic], ...chip(f.type === k), pick: () => set({ type: k }) })),
+      moves: MOVE_KEYS.map(k => { const on = f.move === k, m = MOVES[k]; return { key: k, label: m.label, dot: m.d, bd: on ? m.d : 'var(--border)', fg: on ? m.c : 'var(--text2)', bg: on ? m.t : 'transparent', pick: () => set({ move: k }) }; }),
+      setLabel: e => set({ label: e.target.value }), setNote: e => set({ note: e.target.value }),
+      disabled: !ok, op: ok ? 1 : 0.4, post };
+  }
+  sel(value, onChange, opts, ph) {
+    const h = React.createElement;
+    return h('select', { value, onChange, style: { height: 44, padding: '0 16px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--card)', color: 'var(--text)', font: '14px Inter, sans-serif', width: '100%', minWidth: 0, outline: 'none' } },
+      [h('option', { key: '_', value: '' }, ph), ...opts.map(o => h('option', { key: o.id, value: o.id }, o.name))]);
+  }
+  vm(p) {
+    const es = [...p.entries].sort((a, b) => b.at - a.at), last = es[0], lastAt = last ? last.at : 0;
+    const m = MOVES[p.archived ? 'archived' : p.move], days = daysAgo(p.moveSince);
+    const badge = p.archived ? 'Archived' : p.move === 'none' ? 'No action' : `${m.label} · ${days}d`;
+    const missed = !p.archived && !!p.nextMeeting && p.nextMeeting < NOW && !p.entries.some(e => e.type === 'meeting' && e.at >= sod(p.nextMeeting));
+    return { ...p, key: p.id, es, lastAt, days, badge, mc: m.c, mt: m.t, md: m.d,
+      status: last ? (last.note ? `${last.label}: ${last.note}` : last.label) : '', statusLabel: last ? last.label : '',
+      hasMeet: !!p.nextMeeting && !p.archived, meet: p.nextMeeting ? 'Meet: ' + fMeet(p.nextMeeting) : '',
+      updated: 'Updated ' + fAgo(lastAt), staleDays: daysAgo(lastAt), stale: !p.archived && daysAgo(lastAt) >= 5, missed,
+      hasDesc: !!p.desc, archivedLine: p.archived ? 'Archived ' + fDate(p.archivedAt) : '', meetLocal: toLocal(p.nextMeeting),
+      pinFg: p.pinned ? 'var(--accent-fg)' : 'var(--text2)', pinBg: p.pinned ? 'var(--accent-t)' : 'transparent', pinBd: p.pinned ? 'var(--accent)' : 'var(--border)', pinTitle: p.pinned ? 'Unpin' : 'Pin',
+      open: () => this.openDetail(p.id), update: e => { if (e && e.stopPropagation) e.stopPropagation(); this.openUpdate(p.id); } };
+  }
+
+  renderVals() {
+    if (!this.ic) this.ic = buildIcons();
+    const ic = this.ic, s = this.state, mob = s.w < 768, cols = s.w < 600 ? 1 : s.w < 1024 ? 2 : 4;
+    const all = s.projects.map(p => this.vm(p)), act = all.filter(p => !p.archived);
+    const curTab = s.screen === 'detail' ? s.from : s.screen;
+    const tabs = [['today', 'Today', 'inbox'], ['projects', 'Projects', 'grid'], ['tasks', 'Tasks', 'tasks'], ['archived', 'Archived', 'archive']].map(([k, l, i]) => ({ key: k, label: l, icon: ic[i], fg: curTab === k ? 'var(--accent-fg)' : 'var(--text2)', line: curTab === k ? 'var(--accent)' : 'transparent', go: () => this.go(k) }));
+
+    const row = (p, meta, nudge) => ({ key: p.id, name: p.name, badge: p.badge, mc: p.mc, mt: p.mt, md: p.md, status: p.status, meta, open: p.open, update: p.update, hasNudge: !!nudge,
+      nudge: () => this.openUpdate(p.id, { type: 'call', label: 'Nudged client', note: '' }) });
+    const end = sod(NOW) + 4 * DAY;
+    const relDay = t => { const n = Math.round((sod(t) - sod(NOW)) / DAY); return (n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : fDay(t)) + ', ' + fT(t); };
+    const usR = act.filter(p => p.move === 'us').sort((a, b) => a.moveSince - b.moveSince).map(p => row(p, 'Waiting ' + fDays(p.days)));
+    const meetR = act.filter(p => p.nextMeeting && p.nextMeeting >= sod(NOW) && p.nextMeeting < end).sort((a, b) => a.nextMeeting - b.nextMeeting).map(p => row(p, relDay(p.nextMeeting)));
+    const cliR = act.filter(p => p.move === 'client').sort((a, b) => a.moveSince - b.moveSince).map(p => row(p, 'Waiting ' + fDays(p.days), true));
+    const staleR = act.filter(p => p.stale).sort((a, b) => a.lastAt - b.lastAt).map(p => row(p, 'No update for ' + p.staleDays + ' days'));
+    const sections = [['us', 'Needs our action', usR, 'Nothing waiting on us.'], ['meet', 'Meetings in next 3 days', meetR, 'No meetings coming up.'], ['client', 'Waiting on client', cliR, 'Nobody to chase.'], ['stale', 'Stale', staleR, 'Every project is fresh.']]
+      .map(([k, t, rows, e]) => ({ key: k, title: t, rows, count: rows.length, empty: !rows.length, joy: joy(e) }));
+    const nd = new Date(NOW);
+
+    const ql = s.q.trim().toLowerCase();
+    const cards = act.filter(p => s.pf === 'all' || p.move === s.pf).filter(p => !ql || (p.name + ' ' + p.client).toLowerCase().includes(ql))
+      .sort((a, b) => (b.pinned - a.pinned) || (b.lastAt - a.lastAt));
+    const pfChips = [['all', 'All'], ['us', 'Waiting on us'], ['client', 'Waiting on client'], ['none', 'No action']].map(([k, l]) => ({ key: k, label: l, ...chip(s.pf === k), pick: () => this.setState({ pf: k }) }));
+    const archCards = all.filter(p => p.archived).sort((a, b) => b.archivedAt - a.archivedAt);
+
+    const raw = s.detailId ? all.find(p => p.id === s.detailId) : null;
+    const dp = raw || {}, editable = !!raw && !raw.archived, readonly = !!raw && raw.archived;
+    let steps = [], tlGroups = [], tfChips = [], moveOpts = [];
+    if (raw) {
+      const n = raw.roadmap.length;
+      steps = raw.roadmap.map((name, i) => { const done = i < raw.cur, cur = i === raw.cur, last = i === n - 1;
+        return { key: i + name, name, num: i + 1, isDone: done, notDone: !done, isCur: cur,
+          cbg: done ? 'var(--green)' : cur ? 'var(--accent)' : 'transparent', cbd: done ? 'var(--green)' : cur ? 'var(--accent)' : 'var(--border)', cfg: done || cur ? '#fff' : 'var(--text2)',
+          lfg: cur ? 'var(--accent-fg)' : done ? 'var(--text)' : 'var(--text2)', lfw: cur ? 600 : 400, line: !last, lineBg: done ? 'var(--green)' : 'var(--border)',
+          dir: mob ? 'row' : 'column', inner: mob ? 'column' : 'row', flex: mob || last ? '0 0 auto' : '1 1 0',
+          lw: mob ? '2px' : 'auto', lh: mob ? 'auto' : '2px', lmin: mob ? '0' : '16px', lmin2: mob ? '24px' : '0', lpad: mob ? '6px' : '0' }; });
+      const F = [['all', 'All'], ['call', 'Call'], ['meeting', 'Meeting'], ['dev', 'Development'], ['delivery', 'Delivery'], ['feedback', 'Client feedback'], ['note', 'Note'], ['ar', 'Archive/Reopen']];
+      tfChips = F.map(([k, l]) => ({ key: k, label: l, ...chip(s.tf === k), pick: () => this.setState({ tf: k }) }));
+      const match = e => s.tf === 'all' || (s.tf === 'ar' ? (e.type === 'archived' || e.type === 'reopened') : e.type === s.tf);
+      const gm = new Map();
+      raw.es.filter(match).forEach(e => { const d = daysAgo(e.at), lbl = d <= 0 ? 'Today' : d === 1 ? 'Yesterday' : fDate(e.at);
+        const mv = MOVES[e.move] || MOVES.none;
+        if (!gm.has(lbl)) gm.set(lbl, []);
+        gm.get(lbl).push({ key: e.id, icon: ic[TYPES[e.type].ic], typeLabel: TYPES[e.type].label, label: e.label, hasLabel: !!e.label, note: e.note, hasNote: !!e.note, time: fT(e.at), mc: mv.c, mt: mv.t, md: mv.d }); });
+      tlGroups = [...gm.entries()].map(([label, items]) => ({ key: label, label, items }));
+      moveOpts = MOVE_KEYS.map(k => ({ key: k, label: MOVES[k].label, dot: MOVES[k].d, on: raw.move === k ? 1 : 0, pick: () => this.changeMove(k) }));
+    }
+
+    const labels = [...new Set(s.projects.flatMap(p => p.entries.filter(e => e.type !== 'archived' && e.type !== 'reopened').map(e => e.label)))].sort().map(v => ({ key: v, v }));
+    const projOpts = act.map(p => ({ id: p.id, name: p.name })).sort((a, b) => a.name.localeCompare(b.name));
+
+    let bx = {}, mf = {};
+    if (s.box && raw) bx = this.form({ ...s.box, pid: raw.id }, patch => this.setState(st => ({ box: { ...st.box, ...patch } })), () => this.postBox(), ic);
+    if (s.mf) {
+      const setMf = patch => this.setState(st => ({ mf: { ...st.mf, ...patch } }));
+      const mp = this.proj(s.mf.pid);
+      mf = { ...this.form(s.mf, setMf, () => this.postModal(), ic), picker: !s.mf.fixed, pname: mp ? mp.name : '' };
+    }
+
+    const taskView = s.tasks.filter(t => s.taskTab === 'open' ? !t.done : t.done).sort((a, b) => (a.due || 9e15) - (b.due || 9e15));
+    const taskRows = taskView.map(t => { const p = t.pid ? this.proj(t.pid) : null, dn = t.due ? Math.round((sod(t.due) - sod(NOW)) / DAY) : 0, over = !t.done && t.due && dn < 0;
+      return { key: t.id, title: t.title, toggle: () => this.toggleTask(t.id), toggleTitle: t.done ? 'Mark as open' : 'Mark as done',
+        boxBd: t.done ? 'var(--green)' : 'var(--border)', boxBg: t.done ? 'var(--green)' : 'transparent', check: t.done ? ic.checkSm : null,
+        deco: t.done ? 'line-through' : 'none', fg: t.done ? 'var(--text2)' : 'var(--text)',
+        hasProj: !!p, proj: p ? p.name : '', openProj: () => p && this.openDetail(p.id),
+        hasDue: !!t.due, due: t.due ? (over ? 'Overdue · ' + fDay(t.due) : dn === 0 ? 'Due today' : dn === 1 ? 'Due tomorrow' : 'Due ' + fDay(t.due)) : '', dueFg: over ? 'var(--red)' : 'var(--text2)' }; });
+    const nOpen = s.tasks.filter(t => !t.done).length, nDone = s.tasks.length - nOpen;
+    const taskTabs = [['open', 'Open · ' + nOpen], ['done', 'Done · ' + nDone]].map(([k, l]) => ({ key: k, label: l, fg: s.taskTab === k ? 'var(--accent-fg)' : 'var(--text2)', line: s.taskTab === k ? 'var(--accent)' : 'transparent', go: () => this.setState({ taskTab: k }) }));
+    const ntOk = !!s.nt.title.trim();
+
+    let np = {};
+    if (s.np) {
+      const setNp = patch => this.setState(st => ({ np: { ...st.np, ...patch } })), ok = !!s.np.name.trim();
+      np = { ...s.np, setName: e => setNp({ name: e.target.value }), setClient: e => setNp({ client: e.target.value }), setDesc: e => setNp({ desc: e.target.value }), setMeet: e => setNp({ meet: e.target.value }),
+        tpls: Object.keys(ROADMAPS).map(k => ({ key: k, label: ROADMAPS[k].label, steps: ROADMAPS[k].steps.join(' → '), ...chip(s.np.tpl === k), fg: s.np.tpl === k ? 'var(--accent-fg)' : 'var(--text)', pick: () => setNp({ tpl: k }) })),
+        moves: MOVE_KEYS.map(k => { const on = s.np.move === k, m = MOVES[k]; return { key: k, label: m.label, dot: m.d, bd: on ? m.d : 'var(--border)', fg: on ? m.c : 'var(--text2)', bg: on ? m.t : 'transparent', pick: () => setNp({ move: k }) }; }),
+        disabled: !ok, op: ok ? 1 : 0.4, create: () => this.createProject() };
+    }
+
+    let rmRows = [];
+    if (s.rm) {
+      const L = s.rm.steps.length;
+      rmRows = s.rm.steps.map((st, i) => ({ key: st.k, name: st.name, rbd: s.rm.cur === i ? 'var(--accent)' : 'var(--border)', rdot: s.rm.cur === i ? 'var(--accent)' : 'transparent',
+        setName: e => this.rmEdit(r => { r.steps[i] = { ...r.steps[i], name: e.target.value }; }),
+        setCur: () => this.rmEdit(r => { r.cur = i; }),
+        up: () => i > 0 && this.rmEdit(r => { [r.steps[i - 1], r.steps[i]] = [r.steps[i], r.steps[i - 1]]; if (r.cur === i) r.cur = i - 1; else if (r.cur === i - 1) r.cur = i; }),
+        down: () => i < L - 1 && this.rmEdit(r => { [r.steps[i + 1], r.steps[i]] = [r.steps[i], r.steps[i + 1]]; if (r.cur === i) r.cur = i + 1; else if (r.cur === i + 1) r.cur = i; }),
+        remove: () => L > 1 && this.rmEdit(r => { r.steps.splice(i, 1); if (i < r.cur) r.cur--; r.cur = Math.min(r.cur, r.steps.length - 1); }),
+        upOp: i > 0 ? 1 : 0.3, downOp: i < L - 1 ? 1 : 0.3 }));
+    }
+
+    const isArch = s.modal === 'archive', reasonOk = !!s.reason.trim();
+    const rs = { title: isArch ? `Archive ${dp.name || ''}?` : `Reopen ${dp.name || ''}?`,
+      help: isArch ? 'It moves to the Archived tab with its full timeline. You can reopen it any time.' : 'It moves back to Projects and the reason is added to its timeline.',
+      question: isArch ? 'Why are you archiving this?' : 'Why are you reopening this?', cta: isArch ? 'Archive' : 'Reopen',
+      disabled: !reasonOk, op: reasonOk ? 1 : 0.4, confirm: () => isArch ? this.doArchive() : this.doReopen() };
+
+    const sheet = { top: 'auto', right: '0', bottom: '0', left: '0', width: 'auto', maxh: '90vh', transform: 'none', radius: '12px 12px 0 0', anim: 'pSlideU 200ms ease-out' };
+    const sh = mob ? sheet : { top: '0', right: '0', bottom: '0', left: 'auto', width: 'min(440px, 100vw)', maxh: '100vh', transform: 'none', radius: '0', anim: 'pSlideR 200ms ease-out' };
+    const dl = mob ? sheet : { top: '50%', right: 'auto', bottom: 'auto', left: '50%', width: 'min(520px, calc(100vw - 48px))', maxh: 'calc(100vh - 64px)', transform: 'translate(-50%, -50%)', radius: '12px', anim: 'pFade 150ms ease-out' };
+
+    return {
+      ic, mob, desk: !mob, isLogin: s.screen === 'login', isApp: s.screen !== 'login',
+      email: s.email, pw: s.pw, setEmail: e => this.setState({ email: e.target.value }), setPw: e => this.setState({ pw: e.target.value }),
+      login: e => { e.preventDefault(); this.go('today'); },
+      logout: () => this.setState({ screen: 'login', menu: null, pw: '' }),
+      shownEmail: s.email || 'you@studio.com', initial: (s.email || 'you').trim()[0].toUpperCase(),
+      themeIcon: s.theme === 'light' ? ic.moon : ic.sun, themeLabel: s.theme === 'light' ? 'Dark mode' : 'Light mode', toggleTheme: () => this.toggleTheme(),
+      tabs, goToday: () => this.go('today'),
+      avatarOpen: s.menu === 'avatar', toggleAvatar: () => this.setState({ menu: s.menu === 'avatar' ? null : 'avatar' }), closeMenu: () => this.setState({ menu: null }),
+      menuTop: mob ? '56px' : '64px', mainPad: mob ? '16px 16px 160px' : '32px 24px 64px', chipH: mob ? '44px' : '36px', cardPad: mob ? '16px' : '24px',
+      isToday: s.screen === 'today', isProjects: s.screen === 'projects', isArchived: s.screen === 'archived', isTasks: s.screen === 'tasks', isDetail: s.screen === 'detail' && !!raw,
+      todayLabel: WDL[nd.getDay()] + ', ' + fDate(NOW), sections,
+      q: s.q, setQ: e => this.setState({ q: e.target.value }), pfChips, cards, gridEmpty: !cards.length, joyGrid: joy('No projects match.'), gridCols: `repeat(${cols}, minmax(0, 1fr))`, openNew: () => this.setState({ modal: 'new', np: { name: '', client: '', desc: '', tpl: 'std', move: 'us', meet: '' } }),
+      archCards, archEmpty: !archCards.length, joyArch: joy('Nothing archived.'),
+      dp, editable, readonly, backLabel: s.from === 'archived' ? 'Archived' : 'Projects', backFromDetail: () => this.go(s.from),
+      togglePin: () => { this.updProj(raw.id, p => ({ ...p, pinned: !p.pinned })); this.flash(raw.pinned ? 'Unpinned' : 'Pinned to top'); },
+      dotsOpen: s.menu === 'dots', toggleDots: () => this.setState({ menu: s.menu === 'dots' ? null : 'dots' }),
+      moveOpen: s.menu === 'move', toggleMove: () => this.setState({ menu: s.menu === 'move' ? null : 'move' }), moveOpts,
+      meetFocus: () => { this.meetBefore = raw.nextMeeting; },
+      meetChange: e => { const v = e.target.value ? new Date(e.target.value).getTime() : null; this.updProj(raw.id, p => ({ ...p, nextMeeting: v })); },
+      meetBlur: () => this.meetBlur(),
+      openArchive: () => this.setState({ modal: 'archive', reason: '', menu: null }), openReopen: () => this.setState({ modal: 'reopen', reason: '' }),
+      stepDir: mob ? 'column' : 'row', steps, openRm: () => this.setState({ modal: 'roadmap', rm: { steps: raw.roadmap.map((n, i) => ({ k: 'r' + (UID++), name: n })), cur: raw.cur } }),
+      bx, tfChips, tlGroups, tlEmpty: !!raw && !tlGroups.length, joyTl: joy('No entries of this type.'),
+      nt: s.nt, setNtTitle: e => this.setState({ nt: { ...s.nt, title: e.target.value } }), setNtDue: e => this.setState({ nt: { ...s.nt, due: e.target.value } }),
+      ntProjSel: this.sel(s.nt.pid, e => this.setState({ nt: { ...this.state.nt, pid: e.target.value } }), projOpts, 'No project'),
+      ntDisabled: !ntOk, ntOp: ntOk ? 1 : 0.4, addTask: e => this.addTask(e), taskTabs, taskRows, tasksEmpty: !taskRows.length, joyTasks: joy(s.taskTab === 'open' ? 'All tasks done.' : 'No finished tasks yet.'),
+      fab: () => this.openUpdate(s.screen === 'detail' && editable ? raw.id : null),
+      hasToast: !!s.toast, toast: s.toast, toastBottom: mob ? '152px' : '24px',
+      anyModal: !!s.modal, closeModal: () => this.setState({ modal: null }),
+      isUpdate: s.modal === 'update' && !!s.mf, mf, mfProjSel: this.sel(s.mf ? s.mf.pid : '', e => { const p = this.proj(e.target.value); this.setState(st => ({ mf: { ...st.mf, pid: e.target.value, move: p ? p.move : st.mf.move } })); }, projOpts, 'Choose a project'),
+      isReason: s.modal === 'archive' || s.modal === 'reopen', rs, reason: s.reason, setReason: e => this.setState({ reason: e.target.value }),
+      isNew: s.modal === 'new' && !!s.np, np,
+      isRm: s.modal === 'roadmap' && !!s.rm, rmRows, rmAdd: () => this.rmEdit(r => { r.steps.push({ k: 'r' + (UID++), name: 'New milestone' }); }), rmSave: () => this.rmSave(),
+      sh, dl, labels
+    };
+  }
+
+  toggleTheme() { const t = this.state.theme === 'light' ? 'dark' : 'light'; document.documentElement.dataset.theme = t; this.setState({ theme: t }); }
+  postBox() { const s = this.state; this.post({ ...s.box, pid: s.detailId }); this.setState(st => ({ box: { ...st.box, label: '', note: '' } })); }
+  postModal() { const f = this.state.mf; if (!f.pid) return; this.post(f); this.setState({ modal: null }); }
+  changeMove(k) {
+    const p = this.proj(this.state.detailId); this.setState({ menu: null });
+    if (!p || p.move === k) return;
+    this.addEntry(p.id, { type: 'note', label: MOVES[k].label, note: `Whose move changed from ${MOVES[p.move].label} to ${MOVES[k].label}.`, move: k }, { move: k, moveSince: nowStamp() });
+    this.setState(st => ({ box: st.box ? { ...st.box, move: k } : st.box }));
+  }
+  meetBlur() {
+    const p = this.proj(this.state.detailId); if (!p || p.nextMeeting === this.meetBefore) return;
+    this.meetBefore = p.nextMeeting;
+    this.addEntry(p.id, { type: 'note', label: p.nextMeeting ? 'Meeting scheduled' : 'Meeting cleared', note: p.nextMeeting ? 'Next meeting: ' + fMeet(p.nextMeeting) + '.' : 'Next meeting removed.', move: p.move });
+    this.flash('Next meeting updated');
+  }
+  doArchive() {
+    const id = this.state.detailId, r = this.state.reason.trim(); if (!r) return; const p = this.proj(id), t = nowStamp();
+    this.addEntry(id, { type: 'archived', label: 'Archived', note: r, move: 'archived' }, { archived: true, archiveReason: r, archivedAt: t, pinned: false });
+    this.setState({ modal: null, reason: '', from: 'archived', screen: 'archived' }); window.scrollTo(0, 0);
+    this.flash(p.name + ' archived');
+  }
+  doReopen() {
+    const id = this.state.detailId, r = this.state.reason.trim(); if (!r) return; const p = this.proj(id);
+    this.addEntry(id, { type: 'reopened', label: 'Reopened', note: r, move: 'us' }, { archived: false, archiveReason: '', archivedAt: null, move: 'us', moveSince: nowStamp() });
+    this.setState({ modal: null, reason: '', from: 'projects', box: { type: 'note', label: '', note: '', move: 'us' } });
+    this.flash(p.name + ' reopened');
+  }
+  rmEdit(fn) { this.setState(st => { const r = { steps: [...st.rm.steps], cur: st.rm.cur }; fn(r); return { rm: r }; }); }
+  rmSave() {
+    const p = this.proj(this.state.detailId), r = this.state.rm;
+    const steps = r.steps.map(x => x.name.trim()).filter(Boolean); if (!steps.length) return;
+    const cur = Math.min(r.cur, steps.length - 1), changed = p.roadmap[p.cur] !== steps[cur];
+    if (changed) this.addEntry(p.id, { type: 'note', label: 'Roadmap: ' + steps[cur], note: `Moved to ${steps[cur]}.`, move: p.move }, { roadmap: steps, cur });
+    else this.updProj(p.id, x => ({ ...x, roadmap: steps, cur }));
+    this.setState({ modal: null }); this.flash('Roadmap saved');
+  }
+  createProject() {
+    const n = this.state.np; if (!n.name.trim()) return;
+    const id = 'p' + (UID++), t = nowStamp();
+    const p = { id, name: n.name.trim(), client: n.client.trim() || 'No client', desc: n.desc.trim(), move: n.move, moveSince: t, pinned: false, nextMeeting: n.meet ? new Date(n.meet).getTime() : null, roadmap: [...ROADMAPS[n.tpl].steps], cur: 0,
+      entries: [{ id: 'e' + (UID++), type: 'note', at: t, label: 'Project created', note: n.desc.trim() || 'Project added to Pulse.', move: n.move }] };
+    this.setState(st => ({ projects: [...st.projects, p], modal: null, np: null }), () => this.openDetail(id));
+    this.flash('Project created');
+  }
+  addTask(e) {
+    e.preventDefault(); const nt = this.state.nt; if (!nt.title.trim()) return;
+    const due = nt.due ? D(nt.due) : null;
+    this.setState(st => ({ tasks: [{ id: 't' + (UID++), title: nt.title.trim(), pid: nt.pid, due, done: false }, ...st.tasks], nt: { title: '', pid: nt.pid, due: '' }, taskTab: 'open' }));
+  }
+  toggleTask(id) {
+    const t = this.state.tasks.find(x => x.id === id); const done = !t.done;
+    this.setState(st => ({ tasks: st.tasks.map(x => x.id === id ? { ...x, done } : x) }));
+    if (done && t.pid) { const p = this.proj(t.pid); if (p) { this.addEntry(p.id, { type: 'note', label: 'Task done', note: 'Completed task – ' + t.title, move: p.move }); this.flash('Logged on ' + p.name + ' timeline'); } }
+  }
+}
+</script>
+</body>
+</html>

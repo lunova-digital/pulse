@@ -1,9 +1,105 @@
 @import 'tailwindcss';
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
+@source '../views/**/*.blade.php';
+@source '../../app/**/*.php';
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+/* Design tokens (from design/Pulse.dc.html) */
+:root {
+    --bg: #FAFAF9; --card: #FFFFFF; --border: #E7E5E4; --text: #1C1917; --text2: #78716C; --hover: #F5F5F4;
+    --accent: #4F46E5; --accent-fg: #4F46E5; --accent-t: rgba(79, 70, 229, .1);
+    --orange: #EA580C; --orange-t: rgba(234, 88, 12, .1);
+    --blue: #2563EB; --blue-t: rgba(37, 99, 235, .1);
+    --green: #16A34A; --green-t: rgba(22, 163, 74, .1);
+    --red: #DC2626; --red-t: rgba(220, 38, 38, .1);
+    --gray: #A8A29E; --gray-t: rgba(168, 162, 158, .16);
+    --scrim: rgba(28, 25, 23, .32);
+    color-scheme: light;
+}
+
+html[data-theme='dark'] {
+    --bg: #111113; --card: #1A1A1D; --border: #2A2A2E; --text: #F5F5F4; --text2: #A8A29E; --hover: #232327;
+    --accent-fg: #818CF8; --accent-t: rgba(99, 102, 241, .16);
+    --orange-t: rgba(234, 88, 12, .16); --blue-t: rgba(37, 99, 235, .18);
+    --green-t: rgba(22, 163, 74, .16); --red-t: rgba(220, 38, 38, .16);
+    --gray-t: rgba(168, 162, 158, .14); --scrim: rgba(0, 0, 0, .56);
+    color-scheme: dark;
+}
+
+@theme inline {
+    --font-sans: Inter, system-ui, sans-serif;
+    --color-bg: var(--bg);
+    --color-card: var(--card);
+    --color-border: var(--border);
+    --color-text: var(--text);
+    --color-text2: var(--text2);
+    --color-hover: var(--hover);
+    --color-accent: var(--accent);
+    --color-accent-fg: var(--accent-fg);
+    --color-accent-t: var(--accent-t);
+    --color-orange: var(--orange);
+    --color-orange-t: var(--orange-t);
+    --color-blue: var(--blue);
+    --color-blue-t: var(--blue-t);
+    --color-green: var(--green);
+    --color-green-t: var(--green-t);
+    --color-red: var(--red);
+    --color-red-t: var(--red-t);
+    --color-gray: var(--gray);
+    --color-gray-t: var(--gray-t);
+    --color-scrim: var(--scrim);
+}
+
+@layer base {
+    html { color-scheme: light; }
+    body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Inter, system-ui, sans-serif;
+        font-size: 14px;
+        line-height: 20px;
+        -webkit-font-smoothing: antialiased;
+        transition: background 200ms, color 200ms;
+    }
+    button, input, textarea, select { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; }
+    a { color: var(--accent-fg); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    input::placeholder, textarea::placeholder { color: var(--text2); }
+    [x-cloak] { display: none !important; }
+}
+
+@keyframes pFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pSlideR { from { transform: translateX(32px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pSlideU { from { transform: translateY(48px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pRise { from { transform: translate(-50%, 8px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+@keyframes pBounce { 0%, 100% { transform: translateY(0) scale(1, 1); } 12% { transform: translateY(0) scale(1.1, .9); } 40% { transform: translateY(-14px) scale(.96, 1.04) rotate(-6deg); } 60% { transform: translateY(-14px) scale(.96, 1.04) rotate(6deg); } 84% { transform: translateY(0) scale(1.08, .92); } }
+@keyframes pShadow { 0%, 100% { transform: scaleX(1); opacity: 1; } 40%, 60% { transform: scaleX(.55); opacity: .5; } }
+@keyframes pBlink { 0%, 44%, 52%, 100% { transform: scaleY(1); } 48% { transform: scaleY(.1); } }
+@keyframes pSpark { 0%, 30% { opacity: 0; transform: translateY(6px) scale(.4); } 46% { opacity: 1; transform: translateY(0) scale(1); } 66%, 100% { opacity: 0; transform: translateY(-4px) scale(1); } }
+
+@layer components {
+    .card { @apply rounded-xl border border-border bg-card; }
+    .h1 { @apply m-0 text-[22px] leading-8 font-bold; }
+    .h2 { @apply m-0 text-base leading-6 font-semibold; }
+
+    .btn-primary { @apply inline-flex h-11 items-center justify-center gap-2 rounded-lg border-0 bg-accent px-6 font-semibold transition-colors text-white hover:bg-[#4338CA] disabled:opacity-40 disabled:hover:bg-accent; }
+    .btn-secondary { @apply inline-flex h-11 items-center justify-center gap-2 rounded-lg px-4 font-semibold transition-colors border border-border bg-transparent hover:bg-hover; }
+    .btn-ghost { @apply inline-flex h-11 items-center justify-center gap-2 rounded-lg px-2 font-semibold transition-colors text-accent-fg hover:bg-accent-t; }
+    .icon-btn { @apply inline-flex size-11 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent text-text2 transition-colors hover:bg-hover hover:text-text; }
+
+    .field { @apply h-11 w-full rounded-lg border border-border bg-card px-4 text-text outline-none transition-colors focus:border-accent; }
+    .textarea { @apply w-full resize-y rounded-lg border border-border bg-card px-4 py-2 leading-6 text-text outline-none transition-colors focus:border-accent; }
+
+    .chip { @apply inline-flex h-11 items-center gap-2 rounded-lg border px-4 font-medium whitespace-nowrap transition-all md:h-9; }
+    .chip-off { @apply border-border bg-transparent text-text2; }
+    .chip-on { @apply border-accent bg-accent-t text-accent-fg; }
+
+    .pill { @apply inline-flex h-6 items-center gap-2 rounded-lg px-2 font-medium whitespace-nowrap; }
+    .tag-gray { @apply inline-flex h-6 items-center rounded-lg bg-gray-t px-2 font-medium whitespace-nowrap text-text2; }
+    .tag-red { @apply inline-flex h-6 items-center rounded-lg bg-red-t px-2 font-medium whitespace-nowrap text-red; }
+
+    .menu-item { @apply flex h-11 w-full items-center gap-2 rounded-lg border-0 bg-transparent px-2 text-left text-text hover:bg-hover; }
+    .menu { @apply absolute z-41 rounded-xl border border-border bg-card p-2; animation: pFade 150ms; }
 }
