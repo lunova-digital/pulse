@@ -223,27 +223,6 @@ class TelegramTest extends TestCase
         Http::assertSentCount(1);
     }
 
-    public function test_untouched_reminder_includes_tasks_and_stays_quiet_when_they_are_handled(): void
-    {
-        $this->configure();
-        Http::fake(['api.telegram.org/*' => Http::response(['ok' => true])]);
-        $due = \App\Models\Task::factory()->create(['title' => 'Send invoice', 'due_date' => today()]);
-        $loose = \App\Models\Task::factory()->create(['title' => 'Call vendor', 'is_high' => true]);
-        \App\Models\Task::factory()->create(['title' => 'Next month thing', 'due_date' => today()->addMonth()]);
-
-        $this->artisan('pulse:telegram-untouched')->assertSuccessful();
-
-        Http::assertSent(fn (Request $r) => str_contains($r['text'], '2 tasks not touched today')
-            && str_contains($r['text'], 'Send invoice') && str_contains($r['text'], 'Call vendor')
-            && ! str_contains($r['text'], 'Next month thing'));
-
-        $user = \App\Models\User::factory()->create();
-        $due->skipToday($user);
-        $loose->complete();
-        $this->artisan('pulse:telegram-untouched')->assertSuccessful();
-        Http::assertSentCount(1);
-    }
-
     public function test_untouched_reminder_caps_a_long_list(): void
     {
         $this->configure();

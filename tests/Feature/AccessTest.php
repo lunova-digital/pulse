@@ -64,7 +64,7 @@ class AccessTest extends TestCase
 
         $attempts = [
             fn () => Livewire::test(Index::class)->call('togglePin', $this->hidden->id),
-            fn () => Livewire::test(Today::class)->call('nudge', $this->hidden->id),
+            fn () => Livewire::test(Today::class)->call('done', Task::factory()->create(['project_id' => $this->hidden->id])->id),
         ];
 
         foreach ($attempts as $attempt) {

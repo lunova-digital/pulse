@@ -15,22 +15,26 @@
                 <x-joy>{{ $section['empty'] }}</x-joy>
             @endif
 
-            @foreach ($section['rows'] as [$project, $meta])
-                <div wire:key="{{ $section['key'] }}-{{ $project->id }}" class="flex min-h-16 flex-wrap items-center gap-x-4 gap-y-2 border-t border-border py-2 pr-2 pl-4">
-                    <div class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
-                        <a href="{{ route('projects.show', $project) }}" class="text-base leading-6 font-semibold text-text hover:text-accent-fg hover:no-underline">{{ $project->name }}</a>
-                        <x-move-pill :project="$project" />
-                    </div>
-                    <div class="min-w-0 flex-[1_1_220px] truncate text-text2">{{ $project->statusLine() }}</div>
-                    <div class="ml-auto flex items-center gap-2">
-                        <span class="whitespace-nowrap text-text2">{{ $meta }}</span>
-                        @if ($section['nudge'])
-                            <button type="button" wire:click="nudge({{ $project->id }})" class="btn-ghost">Nudge</button>
+            @foreach ($section['rows'] as $task)
+                <div wire:key="{{ $section['key'] }}-{{ $task->id }}" class="flex min-h-16 flex-wrap items-center gap-x-4 gap-y-2 border-t border-border py-2 pr-2 pl-4">
+                    <div class="min-w-0 flex-[1_1_220px]">
+                        <div class="text-pretty font-semibold">{{ $task->title }}</div>
+                        @if ($task->project)
+                            <a href="{{ route('projects.show', $task->project) }}" class="text-text2">{{ $task->project->name }}</a>
+                        @else
+                            <span class="text-text2">No project</span>
                         @endif
-                        <button type="button" title="Add update" class="icon-btn border border-border"
-                            x-data x-on:click="Livewire.dispatch('open-update', { projectId: {{ $project->id }} })">
-                            <x-icon name="plus" />
-                        </button>
+                    </div>
+                    <div class="ml-auto flex flex-wrap items-center gap-2">
+                        @if ($task->is_high)<span class="tag-red">High</span>@endif
+                        <span class="tag-gray">{{ $task->status->label() }}</span>
+                        @if ($task->due_date)
+                            <span @class(['whitespace-nowrap', 'text-red' => $task->isOverdue(), 'text-text2' => ! $task->isOverdue()])>{{ \App\Support\Fmt::due($task->due_date, false) }}</span>
+                        @endif
+                        @if (! $task->isInProgress())
+                            <button type="button" wire:click="start({{ $task->id }})" class="btn-ghost">Start</button>
+                        @endif
+                        <button type="button" wire:click="done({{ $task->id }})" class="btn-secondary min-h-9 px-3 py-1">Done</button>
                     </div>
                 </div>
             @endforeach

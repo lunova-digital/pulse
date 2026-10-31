@@ -119,6 +119,11 @@
         </section>
     @endif
 
+    {{-- Task board --}}
+    @if ($canEdit && ! $archived)
+        <livewire:projects.task-board :project="$project" :key="'board-'.$project->id" />
+    @endif
+
     {{-- Skip history for this item: collapsed by default --}}
     @if ($canEdit)
         <details class="card overflow-hidden" wire:key="project-skips">

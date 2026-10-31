@@ -37,7 +37,7 @@ class ScreensTest extends TestCase
             $this->get($url)->assertOk();
         }
 
-        $this->get('/today')->assertSee('Needs our action')->assertSee('Nudge');
+        $this->get('/today')->assertSee('Due today')->assertSee('In progress');
         $this->get('/work')->assertSee('AshesMart')->assertDontSee('Dhaka Dental Care');
         $this->get('/archived')->assertSee('Dhaka Dental Care')->assertSee('Client paused budget');
     }
@@ -53,24 +53,42 @@ class ScreensTest extends TestCase
         }
     }
 
-    public function test_today_sections(): void
+    public function test_today_shows_overdue_due_today_and_in_progress_tasks_only(): void
     {
-        $this->seed(SampleProjectsSeeder::class);
+        $p = Project::factory()->create(['name' => 'Acme site']);
+        Task::factory()->create(['title' => 'Late one', 'project_id' => $p->id, 'due_date' => today()->subDay()]);
+        Task::factory()->create(['title' => 'Due now', 'project_id' => $p->id, 'due_date' => today()]);
+        Task::factory()->create(['title' => 'Underway', 'project_id' => $p->id, 'status' => 'in_progress', 'due_date' => today()->addWeek()]);
+        Task::factory()->create(['title' => 'Someday', 'project_id' => $p->id, 'due_date' => today()->addWeek()]);
+        Task::factory()->create(['title' => 'Backlog', 'project_id' => $p->id]);
+        $done = Task::factory()->create(['title' => 'Finished', 'project_id' => $p->id, 'due_date' => today()]);
+        $done->complete();
+        $archived = Project::factory()->archived()->create();
+        Task::factory()->create(['title' => 'Archived work', 'project_id' => $archived->id, 'due_date' => today()]);
 
         Livewire::test(Today::class)
-            ->assertSee('Needs our action')
-            ->assertSee('Meetings in next 3 days')
-            ->assertSee('Waiting on client')
-            ->assertSee('Stale')
-            ->assertSee('Income/Expense SaaS');
+            ->assertSee('Late one')->assertSee('Due now')->assertSee('Underway')->assertSee('Acme site')
+            ->assertDontSee('Someday')->assertDontSee('Backlog')->assertDontSee('Finished')->assertDontSee('Archived work')
+            ->assertDontSee('Needs our action');
+    }
+
+    public function test_today_done_and_start_move_tasks_and_log_completion(): void
+    {
+        $p = Project::factory()->create();
+        $task = Task::factory()->create(['title' => 'Ship it', 'project_id' => $p->id, 'due_date' => today()]);
+
+        Livewire::test(Today::class)->call('start', $task->id);
+        $this->assertSame(\App\Enums\TaskStatus::InProgress, $task->fresh()->status);
+
+        Livewire::test(Today::class)->call('done', $task->id)->assertDispatched('toast');
+        $this->assertTrue($task->fresh()->isDone());
+        $this->assertSame(\App\Enums\TaskStatus::Done, $task->fresh()->status);
+        $this->assertStringContainsString('Ship it', $p->entries()->first()->note);
     }
 
     public function test_nudge_opens_add_update_prefilled(): void
     {
         $project = Project::factory()->waitingOn(WhoseMove::Client)->create();
-
-        Livewire::test(Today::class)->call('nudge', $project->id)
-            ->assertDispatched('open-update', projectId: $project->id, preset: ['type' => 'note', 'label' => 'Nudged client', 'note' => '']);
 
         Livewire::test(AddUpdate::class)
             ->dispatch('open-update', projectId: $project->id, preset: ['type' => 'note', 'label' => 'Nudged client', 'note' => ''])

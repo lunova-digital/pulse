@@ -2,52 +2,54 @@
 
 namespace App\Livewire;
 
-use App\Livewire\Concerns\RefreshesOnEntry;
+use App\Enums\TaskStatus;
 use App\Models\Project;
-use App\Support\Fmt;
+use App\Models\Task;
 use Livewire\Component;
 
+/** What to work on now: overdue and due-today tasks, plus whatever is In Progress. */
 class Today extends Component
 {
-    use RefreshesOnEntry;
-
-    public function nudge(int $projectId): void
+    protected function task(int $id): Task
     {
-        Project::active()->visibleTo(auth()->user())->findOrFail($projectId);
+        $task = Task::visibleTo(auth()->user())->open()->with('project')->findOrFail($id);
 
-        $this->dispatch('open-update', projectId: $projectId, preset: [
-            'type' => 'note',
-            'label' => 'Nudged client',
-            'note' => '',
-        ]);
+        if ($task->project) {
+            $this->authorize('update', $task->project);
+        }
+
+        return $task;
+    }
+
+    public function done(int $id): void
+    {
+        $task = $this->task($id);
+        $task->moveTo(TaskStatus::Done);
+
+        $this->dispatch('toast', message: $task->project ? 'Done, logged on '.$task->project->name : 'Done');
+    }
+
+    public function start(int $id): void
+    {
+        $this->task($id)->moveTo(TaskStatus::InProgress);
+        $this->dispatch('toast', message: 'In progress');
     }
 
     public function render()
     {
-        $user = auth()->user();
-        $base = fn () => Project::active()->visibleTo($user)->with('latestEntry');
+        $open = Task::visibleTo(auth()->user())->open()
+            ->where(fn ($q) => $q->whereNull('project_id')->orWhereIn('project_id', Project::active()->select('projects.id')))
+            ->with('project')
+            ->orderByDesc('is_high')->orderBy('due_date')->orderBy('id')->get();
+
+        $overdue = $open->filter(fn (Task $t) => $t->due_date?->lt(today()));
+        $dueToday = $open->filter(fn (Task $t) => $t->due_date?->isSameDay(today()));
+        $inProgress = $open->filter(fn (Task $t) => $t->isInProgress() && ! $overdue->contains($t) && ! $dueToday->contains($t));
 
         $sections = [
-            [
-                'key' => 'us', 'title' => 'Needs our action', 'empty' => 'Nothing waiting on us.', 'nudge' => false,
-                'rows' => $base()->waitingOnUs()->orderBy('whose_move_since')->get()
-                    ->map(fn (Project $p) => [$p, 'Waiting '.Fmt::duration($p->daysSince($p->whose_move_since))]),
-            ],
-            [
-                'key' => 'meet', 'title' => 'Meetings in next 3 days', 'empty' => 'No meetings coming up.', 'nudge' => false,
-                'rows' => $base()->meetingsSoon()->orderBy('next_meeting_at')->get()
-                    ->map(fn (Project $p) => [$p, Fmt::relativeMeeting($p->next_meeting_at)]),
-            ],
-            [
-                'key' => 'client', 'title' => 'Waiting on client', 'empty' => 'Nobody to chase.', 'nudge' => true,
-                'rows' => $base()->waitingOnClient()->orderBy('whose_move_since')->get()
-                    ->map(fn (Project $p) => [$p, 'Waiting '.Fmt::duration($p->daysSince($p->whose_move_since))]),
-            ],
-            [
-                'key' => 'stale', 'title' => 'Stale', 'empty' => 'Every project is fresh.', 'nudge' => false,
-                'rows' => $base()->stale()->orderBy('last_activity_at')->get()
-                    ->map(fn (Project $p) => [$p, 'No update for '.$p->daysSince($p->last_activity_at).' days']),
-            ],
+            ['key' => 'overdue', 'title' => 'Overdue', 'empty' => 'Nothing overdue.', 'rows' => $overdue],
+            ['key' => 'today', 'title' => 'Due today', 'empty' => 'Nothing due today.', 'rows' => $dueToday],
+            ['key' => 'progress', 'title' => 'In progress', 'empty' => 'Nothing in progress.', 'rows' => $inProgress],
         ];
 
         return view('livewire.today', ['sections' => $sections])
