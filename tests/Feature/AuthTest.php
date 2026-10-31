@@ -15,7 +15,7 @@ class AuthTest extends TestCase
 
     public function test_guests_are_sent_to_login(): void
     {
-        foreach (['/today', '/projects', '/tasks', '/archived'] as $url) {
+        foreach (['/today', '/work', '/tasks', '/archived'] as $url) {
             $this->get($url)->assertRedirect('/login');
         }
     }
@@ -62,7 +62,7 @@ class AuthTest extends TestCase
         $this->assertGuest();
 
         // A session that was open when the account was deactivated ends on the next request.
-        $this->actingAs($user)->get('/projects')->assertRedirect('/login');
+        $this->actingAs($user)->get('/work')->assertRedirect('/login');
     }
 
     public function test_wrong_password_is_rejected(): void

@@ -28,27 +28,57 @@ class PriorityTest extends TestCase
     {
         $project = Project::factory()->create(['name' => 'Alpha']);
 
-        Livewire::test(Index::class, ['kind' => 'project'])->call('togglePin', $project->id)->assertSee('Priority today');
+        Livewire::test(Index::class)->call('togglePin', $project->id)->assertSee('Priority today');
         $this->assertTrue($project->fresh()->is_pinned);
 
         // Nothing changes overnight: tomorrow it is still the priority.
         $this->travel(1)->day();
         $this->assertTrue($project->fresh()->is_pinned);
-        Livewire::test(Index::class, ['kind' => 'project'])->assertSee('Priority today')->assertSee('Alpha');
+        Livewire::test(Index::class)->assertSee('Priority today')->assertSee('Alpha');
 
-        Livewire::test(Index::class, ['kind' => 'project'])->call('togglePin', $project->id);
+        Livewire::test(Index::class)->call('togglePin', $project->id);
         $this->assertFalse($project->fresh()->is_pinned);
     }
 
-    public function test_priority_is_listed_first_and_each_kind_has_its_own_list(): void
+    public function test_priority_is_listed_first(): void
     {
         Project::factory()->create(['name' => 'Zed plain']);
         Project::factory()->create(['name' => 'Alpha pinned', 'is_pinned' => true]);
-        Project::factory()->create(['name' => 'A product', 'kind' => 'product']);
 
-        Livewire::test(Index::class, ['kind' => 'project'])
-            ->assertSeeInOrder(['Priority today', 'Alpha pinned', 'Everything else', 'Zed plain'])
-            ->assertDontSee('A product');
+        Livewire::test(Index::class)->assertSeeInOrder(['Priority today', 'Alpha pinned', 'Everything else', 'Zed plain']);
+    }
+
+    public function test_projects_and_products_share_one_tab_with_a_type_filter_and_a_type_tag(): void
+    {
+        Project::factory()->create(['name' => 'A website']);
+        Project::factory()->create(['name' => 'A saas', 'kind' => 'product']);
+
+        Livewire::test(Index::class)->assertSee('A website')->assertSee('A saas')->assertSee('Product')->assertSee('Project');
+        Livewire::test(Index::class)->set('type', 'product')->assertSee('A saas')->assertDontSee('A website');
+        Livewire::test(Index::class)->set('type', 'project')->assertSee('A website')->assertDontSee('A saas');
+
+        $this->get('/projects')->assertRedirect('/work');
+        $this->get('/products')->assertRedirect('/work?type=product');
+        $this->get('/work')->assertOk()->assertSee('Work');
+    }
+
+    public function test_new_items_can_be_a_project_or_a_product(): void
+    {
+        Livewire::test(Index::class)->set('type', 'product')->call('openNew')->assertSet('kind', 'product')
+            ->set('name', 'My product')->call('create');
+        Livewire::test(Index::class)->call('openNew')->assertSet('kind', 'project')
+            ->set('name', 'My project')->set('kind', 'project')->call('create');
+
+        $this->assertSame('product', Project::where('name', 'My product')->value('kind')->value);
+        $this->assertSame('project', Project::where('name', 'My project')->value('kind')->value);
+    }
+
+    public function test_untouched_banner_counts_everything_even_when_filtered(): void
+    {
+        Project::factory()->create();
+        Project::factory()->create(['kind' => 'product']);
+
+        Livewire::test(Index::class)->set('type', 'product')->assertSee('not touched today')->assertSeeHtml('<b>2</b>');
     }
 
     public function test_bulk_skip_hides_projects_for_today_and_logs_them_silently(): void
@@ -57,7 +87,7 @@ class PriorityTest extends TestCase
         $b = Project::factory()->create(['name' => 'Quiet B']);
         $keep = Project::factory()->create(['name' => 'Keep me']);
 
-        Livewire::test(Index::class, ['kind' => 'project'])
+        Livewire::test(Index::class)
             ->call('toggleSelecting')
             ->set('selected', [$a->id, $b->id])
             ->call('skipSelected')
@@ -71,11 +101,11 @@ class PriorityTest extends TestCase
         $this->assertFalse($keep->fresh()->isSkippedToday());
 
         // Hidden from the list today, shown in the collapsed history.
-        Livewire::test(Index::class, ['kind' => 'project'])->assertSee('Skip history')->assertSee('Today');
+        Livewire::test(Index::class)->assertSee('Skip history')->assertSee('Today');
 
         // Back tomorrow.
         $this->travel(1)->day();
-        Livewire::test(Index::class, ['kind' => 'project'])->assertSee('Quiet A')->assertSee('Quiet B');
+        Livewire::test(Index::class)->assertSee('Quiet A')->assertSee('Quiet B');
     }
 
     public function test_priority_projects_are_not_skipped_in_bulk(): void
@@ -83,7 +113,7 @@ class PriorityTest extends TestCase
         $priority = Project::factory()->create(['is_pinned' => true]);
         $other = Project::factory()->create();
 
-        Livewire::test(Index::class, ['kind' => 'project'])
+        Livewire::test(Index::class)
             ->set('selected', [$priority->id, $other->id])
             ->call('skipSelected');
 
@@ -115,7 +145,7 @@ class PriorityTest extends TestCase
     public function test_the_daily_tab_is_gone_and_home_is_projects(): void
     {
         $this->get('/daily')->assertNotFound();
-        $this->get('/')->assertRedirect(route('projects.index'));
+        $this->get('/')->assertRedirect(route('work.index'));
     }
 
     public function test_every_item_is_untouched_until_updated_or_skipped(): void
@@ -139,7 +169,7 @@ class PriorityTest extends TestCase
         $plain = Project::factory()->create(['name' => 'Plain']);
         $priority = Project::factory()->create(['name' => 'Starred', 'is_pinned' => true]);
 
-        Livewire::test(Index::class, ['kind' => 'project'])
+        Livewire::test(Index::class)
             ->assertSee('2')->assertSee('not touched today')
             ->call('skip', $plain->id)
             ->call('skip', $priority->id)

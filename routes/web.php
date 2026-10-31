@@ -29,7 +29,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             return redirect()->route('projects.show', $project);
         }
 
-        return redirect()->route('projects.index');
+        return redirect()->route('work.index');
     });
 
     // Item access is enforced by ProjectPolicy inside the component.
@@ -37,8 +37,10 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::middleware('can:staff')->group(function () {
         Route::get('/today', Today::class)->name('today');
-        Route::get('/projects', ProjectsIndex::class)->name('projects.index')->defaults('kind', 'project');
-        Route::get('/products', ProjectsIndex::class)->name('products.index')->defaults('kind', 'product');
+        Route::get('/work', ProjectsIndex::class)->name('work.index');
+        // Old bookmarks: projects and products now share the Work tab.
+        Route::redirect('/projects', '/work');
+        Route::redirect('/products', '/work?type=product');
         Route::get('/archived', Archived::class)->name('archived');
         Route::get('/tasks', Tasks::class)->name('tasks');
     });

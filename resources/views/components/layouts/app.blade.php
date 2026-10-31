@@ -3,8 +3,7 @@
     // Client-portal users get no navigation, only the project shared with them.
     $tabs = $me->isStaff() ? array_filter([
         'today' => ['Today', 'inbox', route('today')],
-        'projects' => ['Projects', 'grid', route('projects.index')],
-        'products' => ['Products', 'package-check', route('products.index')],
+        'work' => ['Work', 'grid', route('work.index')],
         'clients' => $me->canManageClients() ? ['Clients', 'users', route('clients.index')] : null,
         'tasks' => ['Tasks', 'tasks', route('tasks')],
     ]) : [];
@@ -17,7 +16,7 @@
     $moreTabs = array_diff_key($tabs, array_flip($primaryKeys)) + $extra;
     $active ??= '';
     $initial = strtoupper(mb_substr($me->email, 0, 1));
-    $homeUrl = $me->isStaff() ? route('projects.index') : url('/');
+    $homeUrl = $me->isStaff() ? route('work.index') : url('/');
 @endphp
 <x-layouts.base :title="$title ?? 'Pulse'">
 <div class="min-h-screen bg-bg text-text">

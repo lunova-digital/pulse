@@ -41,7 +41,7 @@ class AccessTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        Livewire::test(Index::class, ['kind' => 'project'])->assertSee('Shared one')->assertSee('Hidden one');
+        Livewire::test(Index::class)->assertSee('Shared one')->assertSee('Hidden one');
     }
 
     public function test_member_sees_only_assigned_items_everywhere(): void
@@ -50,7 +50,7 @@ class AccessTest extends TestCase
         Task::factory()->create(['title' => 'Secret task', 'project_id' => $this->hidden->id]);
         Task::factory()->create(['title' => 'Visible task', 'project_id' => $this->shared->id]);
 
-        Livewire::test(Index::class, ['kind' => 'project'])->assertSee('Shared one')->assertDontSee('Hidden one');
+        Livewire::test(Index::class)->assertSee('Shared one')->assertDontSee('Hidden one');
         Livewire::test(Today::class)->assertDontSee('Hidden one');
         Livewire::test(Tasks::class)->assertSee('Visible task')->assertDontSee('Secret task');
 
@@ -63,7 +63,7 @@ class AccessTest extends TestCase
         $this->actingAs($this->member());
 
         $attempts = [
-            fn () => Livewire::test(Index::class, ['kind' => 'project'])->call('togglePin', $this->hidden->id),
+            fn () => Livewire::test(Index::class)->call('togglePin', $this->hidden->id),
             fn () => Livewire::test(Today::class)->call('nudge', $this->hidden->id),
         ];
 
@@ -80,7 +80,7 @@ class AccessTest extends TestCase
         $member = User::factory()->member()->create();
         $this->actingAs($member);
 
-        Livewire::test(Index::class, ['kind' => 'product'])
+        Livewire::test(Index::class)->set('type', 'product')
             ->call('openNew')->set('name', 'Mine')->call('create');
 
         $mine = Project::where('name', 'Mine')->first();
@@ -100,7 +100,7 @@ class AccessTest extends TestCase
         $page = $this->get("/projects/{$this->shared->id}")->assertOk();
         $page->assertSee('Public status')->assertDontSee('Budget worry')->assertDontSee('Add update')->assertDontSee('Archive project');
 
-        foreach (['/today', '/projects', '/products', '/tasks', '/archived', '/clients', '/team'] as $url) {
+        foreach (['/today', '/work', '/tasks', '/archived', '/clients', '/team'] as $url) {
             $this->get($url)->assertForbidden();
         }
 

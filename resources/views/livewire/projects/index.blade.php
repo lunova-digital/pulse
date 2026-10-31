@@ -1,17 +1,22 @@
 <div class="flex flex-col gap-6" style="animation: pFade 200ms">
     <div class="flex flex-wrap items-center gap-4">
-        <h1 class="h1 flex-1">{{ $kindPlural }}</h1>
+        <h1 class="h1 flex-1">Work</h1>
         @if ($projects->isNotEmpty())
             <button type="button" wire:click="toggleSelecting" @class(['btn-secondary', 'border-accent' => $selecting])>{{ $selecting ? 'Done' : 'Select' }}</button>
         @endif
-        <button type="button" wire:click="openNew" class="btn-primary"><x-icon name="plus" />New {{ strtolower($kindLabel) }}</button>
+        <button type="button" wire:click="openNew" class="btn-primary"><x-icon name="plus" />New</button>
     </div>
 
     <div class="flex flex-wrap items-center gap-4">
         <label class="relative flex max-w-[400px] flex-[1_1_280px] items-center">
             <span class="pointer-events-none absolute left-4 text-text2"><x-icon name="search" /></span>
-            <input type="search" wire:model.live.debounce.250ms="search" placeholder="Search {{ strtolower($kindPlural) }} or clients" class="field pl-12">
+            <input type="search" wire:model.live.debounce.250ms="search" placeholder="Search projects, products or clients" class="field pl-12">
         </label>
+        <div class="flex flex-wrap gap-2">
+            @foreach (['all' => 'All types', 'project' => 'Projects', 'product' => 'Products'] as $key => $label)
+                <button type="button" wire:click="$set('type', '{{ $key }}')" @class(['chip', 'chip-on' => $type === $key, 'chip-off' => $type !== $key])>{{ $label }}</button>
+            @endforeach
+        </div>
         <div class="flex flex-wrap gap-2">
             @foreach (['all' => 'All', 'us' => 'Waiting on us', 'client' => 'Waiting on client', 'none' => 'No action'] as $key => $label)
                 <button type="button" wire:click="$set('filter', '{{ $key }}')" @class(['chip', 'chip-on' => $filter === $key, 'chip-off' => $filter !== $key])>{{ $label }}</button>
@@ -20,7 +25,7 @@
     </div>
 
     @if ($projects->isEmpty())
-        <div class="card"><x-joy>No {{ strtolower($kindPlural) }} match.</x-joy></div>
+        <div class="card"><x-joy>Nothing matches.</x-joy></div>
     @endif
 
     <div @class(['rounded-lg border px-4 py-2', 'border-border bg-hover text-text2' => $untouched === 0, 'border-accent bg-accent-t text-accent-fg' => $untouched > 0])>
@@ -59,7 +64,7 @@
                             </button>
                         @endcan
                     </div>
-                    <div><x-move-pill :project="$project" /></div>
+                    <div class="flex flex-wrap items-center gap-2"><x-move-pill :project="$project" /><span class="tag-gray">{{ $project->kind->label() }}</span></div>
                     <div class="line-clamp-2 text-pretty">{{ $project->statusLine() }}</div>
                     @if ($project->next_meeting_at)
                         <div class="flex items-center gap-2 text-text2"><x-icon name="cal" /><span>Meet: {{ \App\Support\Fmt::meeting($project->next_meeting_at) }}</span></div>
@@ -104,10 +109,18 @@
     </details>
 
     @if ($showNew)
-        <x-modal title="New {{ strtolower($kindLabel) }}" close="closeNew">
+        <x-modal title="New project or product" close="closeNew">
             <div class="flex flex-1 flex-col gap-4 overflow-auto p-6">
+                <div class="flex flex-col gap-2">
+                    <div class="font-semibold">Type</div>
+                    <div class="flex flex-wrap gap-2">
+                        @foreach (\App\Enums\ProjectKind::cases() as $k)
+                            <button type="button" wire:click="$set('kind', '{{ $k->value }}')" @class(['chip', 'chip-on' => $kind === $k->value, 'chip-off' => $kind !== $k->value])>{{ $k->label() }}</button>
+                        @endforeach
+                    </div>
+                </div>
                 <label class="flex flex-col gap-2">
-                    <span class="font-semibold">{{ $kindLabel }} name</span>
+                    <span class="font-semibold">Name</span>
                     <input wire:model="name" placeholder="e.g. Clinic booking site" class="field" autofocus>
                     @error('name')<span class="text-red">{{ $message }}</span>@enderror
                 </label>
@@ -147,7 +160,7 @@
             </div>
             <div class="flex justify-end gap-2 border-t border-border px-6 py-4">
                 <button type="button" wire:click="closeNew" class="btn-secondary">Cancel</button>
-                <button type="button" wire:click="create" x-data x-bind:disabled="!$wire.name.trim()" class="btn-primary">Create {{ strtolower($kindLabel) }}</button>
+                <button type="button" wire:click="create" x-data x-bind:disabled="!$wire.name.trim()" class="btn-primary">Create</button>
             </div>
         </x-modal>
     @endif

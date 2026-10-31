@@ -11,7 +11,6 @@ use App\Models\Project;
 use App\Models\TimelineEntry;
 use App\Support\Fmt;
 use Illuminate\Validation\Rule;
-use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
@@ -19,8 +18,11 @@ class Index extends Component
 {
     use RefreshesOnEntry;
 
-    /** project | product: the route decides which list this page shows. */
-    #[Locked]
+    /** all | project | product */
+    #[Url(as: 'type')]
+    public string $type = 'all';
+
+    /** Kind of the item being created in the modal. */
     public string $kind = 'project';
 
     #[Url(as: 'q')]
@@ -48,14 +50,9 @@ class Index extends Component
 
     public string $meeting = '';
 
-    public function mount(string $kind = 'project'): void
-    {
-        $this->kind = ProjectKind::from($kind)->value;
-    }
-
     protected function editable(int $id): Project
     {
-        $project = Project::active()->ofKind(ProjectKind::from($this->kind))->visibleTo(auth()->user())->findOrFail($id);
+        $project = Project::active()->visibleTo(auth()->user())->findOrFail($id);
 
         $this->authorize('update', $project);
 
@@ -88,7 +85,7 @@ class Index extends Component
     /** Skip for today: not working on these now. Priority (pinned) projects are never skipped in bulk. */
     public function skipSelected(): void
     {
-        $projects = Project::active()->ofKind(ProjectKind::from($this->kind))->visibleTo(auth()->user())
+        $projects = Project::active()->visibleTo(auth()->user())
             ->where('is_pinned', false)
             ->whereIn('id', array_map('intval', $this->selected))->get();
 
@@ -106,6 +103,7 @@ class Index extends Component
     {
         $this->resetValidation();
         $this->reset('name', 'client', 'description', 'template', 'move', 'meeting');
+        $this->kind = ProjectKind::tryFrom($this->type)?->value ?? 'project';
         $this->showNew = true;
     }
 
@@ -123,6 +121,7 @@ class Index extends Component
             'template' => ['required', Rule::enum(RoadmapTemplate::class)],
             'move' => ['required', Rule::enum(WhoseMove::class)],
             'meeting' => ['nullable', 'date'],
+            'kind' => ['required', Rule::enum(ProjectKind::class)],
         ]);
 
         $project = Project::start([
@@ -131,10 +130,10 @@ class Index extends Component
             'description' => filled($data['description']) ? trim($data['description']) : null,
             'whose_move' => WhoseMove::from($data['move']),
             'next_meeting_at' => filled($data['meeting']) ? $data['meeting'] : null,
-            'kind' => ProjectKind::from($this->kind),
+            'kind' => ProjectKind::from($data['kind']),
         ], RoadmapTemplate::from($data['template']), auth()->user());
 
-        session()->flash('toast', ProjectKind::from($this->kind)->label().' created');
+        session()->flash('toast', ProjectKind::from($data['kind'])->label().' created');
 
         return $this->redirectRoute('projects.show', $project);
     }
@@ -143,12 +142,10 @@ class Index extends Component
     {
         $term = trim($this->search);
 
-        $kind = ProjectKind::from($this->kind);
-
         $skippedIds = DailySkip::whereDate('skipped_on', today()->toDateString())->whereNotNull('project_id')->select('project_id');
 
         $projects = Project::active()
-            ->ofKind($kind)
+            ->when(ProjectKind::tryFrom($this->type), fn ($q, $kind) => $q->ofKind($kind))
             ->whereNotIn('id', $skippedIds)
             ->visibleTo(auth()->user())
             ->with('latestEntry')
@@ -161,16 +158,17 @@ class Index extends Component
             ->get();
 
         $updatedToday = TimelineEntry::where('created_at', '>=', today())->distinct()->pluck('project_id');
-        $untouched = $projects->reject(fn (Project $p) => $updatedToday->contains($p->id))->count();
+        // Across every project and product, whatever the filters show.
+        $untouched = Project::untouchedToday()->visibleTo(auth()->user())->count();
 
-        $visible = Project::active()->ofKind($kind)->visibleTo(auth()->user())->select('projects.id');
+        $visible = Project::active()->visibleTo(auth()->user())->select('projects.id');
 
         $skips = DailySkip::with(['project:id,name', 'user:id,name'])
             ->whereIn('project_id', $visible)
             ->orderByDesc('skipped_on')->orderByDesc('id')->limit(100)->get()
             ->groupBy(fn (DailySkip $s) => Fmt::dayGroup($s->skipped_on));
 
-        return view('livewire.projects.index', ['projects' => $projects->sortBy(fn (Project $p) => $updatedToday->contains($p->id) ? 1 : 0)->values(), 'updatedToday' => $updatedToday, 'untouched' => $untouched, 'skips' => $skips, 'kindLabel' => $kind->label(), 'kindPlural' => $kind->plural()])
-            ->layoutData(['active' => $kind->plural() === 'Products' ? 'products' : 'projects', 'title' => $kind->plural()]);
+        return view('livewire.projects.index', ['projects' => $projects->sortBy(fn (Project $p) => $updatedToday->contains($p->id) ? 1 : 0)->values(), 'updatedToday' => $updatedToday, 'untouched' => $untouched, 'skips' => $skips])
+            ->layoutData(['active' => 'work', 'title' => 'Work']);
     }
 }

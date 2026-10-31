@@ -33,12 +33,12 @@ class ScreensTest extends TestCase
         $active = Project::active()->first();
         $archived = Project::archived()->first();
 
-        foreach (['/today', '/projects', '/archived', '/tasks', "/projects/{$active->id}", "/projects/{$archived->id}"] as $url) {
+        foreach (['/today', '/work', '/archived', '/tasks', "/projects/{$active->id}", "/projects/{$archived->id}"] as $url) {
             $this->get($url)->assertOk();
         }
 
         $this->get('/today')->assertSee('Needs our action')->assertSee('Nudge');
-        $this->get('/projects')->assertSee('AshesMart')->assertDontSee('Dhaka Dental Care');
+        $this->get('/work')->assertSee('AshesMart')->assertDontSee('Dhaka Dental Care');
         $this->get('/archived')->assertSee('Dhaka Dental Care')->assertSee('Client paused budget');
     }
 

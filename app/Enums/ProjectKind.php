@@ -16,9 +16,4 @@ enum ProjectKind: string
     {
         return $this->label().'s';
     }
-
-    public function route(): string
-    {
-        return $this === self::Product ? 'products.index' : 'projects.index';
-    }
 }

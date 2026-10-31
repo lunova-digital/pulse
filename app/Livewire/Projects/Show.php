@@ -236,13 +236,13 @@ class Show extends Component
             'archived' => $archived,
             'labels' => $archived || ! $canEdit ? [] : Project::statusLabelSuggestions($user),
             'canEdit' => $canEdit,
-            'backUrl' => $canEdit ? ($archived ? route('archived') : route($this->project->kind->route())) : null,
-            'backLabel' => $archived ? 'Archived' : $this->project->kind->plural(),
+            'backUrl' => $canEdit ? ($archived ? route('archived') : route('work.index')) : null,
+            'backLabel' => $archived ? 'Archived' : 'Work',
             'archiveReason' => $archived ? $this->project->archiveReason() : null,
             'skips' => $canEdit ? $this->project->skips()->with('user:id,name')->orderByDesc('skipped_on')->limit(60)->get() : collect(),
             'meetingMissed' => $this->project->meetingNotLogged(),
         ])->layoutData([
-            'active' => $archived ? 'archived' : ($this->project->kind->value === 'product' ? 'products' : 'projects'),
+            'active' => $archived ? 'archived' : 'work',
             'fabProject' => $archived || ! $canEdit ? null : $this->project->id,
             'title' => $this->project->name,
         ]);

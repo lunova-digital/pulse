@@ -75,7 +75,7 @@ class ReminderDigest
         }
 
         $lines[] = '';
-        $lines[] = '<a href="'.e(route('projects.index')).'">Open Pulse</a>';
+        $lines[] = '<a href="'.e(route('work.index')).'">Open Pulse</a>';
 
         return implode("\n", $lines);
     }
@@ -104,7 +104,7 @@ class ReminderDigest
         }
 
         $lines[] = '';
-        $lines[] = '<a href="'.e(route('projects.index')).'">Open Pulse</a>';
+        $lines[] = '<a href="'.e(route('work.index')).'">Open Pulse</a>';
 
         return implode("\n", $lines);
     }
