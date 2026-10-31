@@ -107,6 +107,21 @@
         </div>
     </section>
 
+    {{-- Updates and Tasks share this page: the tabs switch panels without leaving it. --}}
+    @php $hasBoard = $canEdit && ! $archived; @endphp
+    <div class="flex flex-col gap-6" @if ($hasBoard) x-data="{ tab: location.hash === '#tasks' ? 'tasks' : 'updates' }"
+        x-init="$watch('tab', t => history.replaceState(null, '', location.pathname + location.search + (t === 'tasks' ? '#tasks' : '')))" @endif>
+        @if ($hasBoard)
+            <div class="flex gap-2 border-b border-border" role="tablist">
+                @foreach (['updates' => 'Updates', 'tasks' => 'Tasks · '.$openTasks] as $key => $label)
+                    <button type="button" role="tab" x-on:click="tab = '{{ $key }}'" x-bind:aria-selected="tab === '{{ $key }}'"
+                        x-bind:class="tab === '{{ $key }}' ? 'border-accent text-accent-fg' : 'border-transparent text-text2'"
+                        class="-mb-px h-11 border-0 border-b-2 bg-transparent px-4 font-semibold transition-colors">{{ $label }}</button>
+                @endforeach
+            </div>
+        @endif
+
+        <div @if ($hasBoard) x-show="tab === 'updates'" @endif class="flex flex-col gap-6">
     {{-- Add update --}}
     @if ($canEdit && ! $archived)
         <section class="card flex flex-col gap-4 p-4 md:p-6">
@@ -117,11 +132,6 @@
                     x-bind:disabled="!($wire.form.label.trim() || $wire.form.note.trim())" class="btn-primary">Post update</button>
             </div>
         </section>
-    @endif
-
-    {{-- Task board --}}
-    @if ($canEdit && ! $archived)
-        <livewire:projects.task-board :project="$project" :key="'board-'.$project->id" />
     @endif
 
     {{-- Skip history for this item: collapsed by default --}}
@@ -187,6 +197,14 @@
             @endforeach
         </div>
     </section>
+        </div>
+
+        @if ($hasBoard)
+            <div x-show="tab === 'tasks'" x-cloak>
+                <livewire:projects.task-board :project="$project" :key="'board-'.$project->id" />
+            </div>
+        @endif
+    </div>
 
     {{-- Archive / reopen --}}
     @if (in_array($modal, ['archive', 'reopen'], true))

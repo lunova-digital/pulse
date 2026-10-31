@@ -31,6 +31,20 @@ class TaskBoardTest extends TestCase
             ->assertSee('To Do')->assertSee('In Progress')->assertSee('Complete')->assertSee('+ Add task');
     }
 
+    public function test_the_project_page_has_updates_and_tasks_tabs_with_the_open_task_count(): void
+    {
+        Task::factory()->count(2)->create(['project_id' => $this->project->id]);
+        Task::factory()->create(['project_id' => $this->project->id])->complete();
+
+        $this->get("/projects/{$this->project->id}")->assertOk()
+            ->assertSee('role="tablist"', false)->assertSee('Updates')->assertSee('Tasks · 2');
+
+        // Read-only viewers get no tabs, only the timeline.
+        $client = User::factory()->client()->create();
+        $client->projects()->attach($this->project);
+        $this->actingAs($client)->get("/projects/{$this->project->id}")->assertOk()->assertDontSee('role="tablist"', false);
+    }
+
     public function test_tasks_are_created_on_the_board_in_todo_with_a_deadline(): void
     {
         Livewire::test(TaskBoard::class, ['project' => $this->project])

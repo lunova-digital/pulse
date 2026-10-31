@@ -56,6 +56,7 @@ class TaskBoard extends Component
         ]);
 
         $this->reset('title', 'due', 'high');
+        $this->dispatch('tasks-changed');
     }
 
     /** Drag and drop (or the arrow buttons) end up here. */
@@ -71,6 +72,7 @@ class TaskBoard extends Component
         }
 
         $task->moveTo($to);
+        $this->dispatch('tasks-changed');
 
         if ($to === TaskStatus::Done) {
             // The completion note was added to the timeline: refresh the page around the board.

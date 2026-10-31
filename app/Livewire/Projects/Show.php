@@ -9,6 +9,7 @@ use App\Livewire\Concerns\RefreshesOnEntry;
 use App\Livewire\Forms\UpdateForm;
 use App\Models\Project;
 use Illuminate\Support\Str;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class Show extends Component
@@ -57,6 +58,12 @@ class Show extends Component
         $this->ensureEditable();
         $this->project->skipToday(auth()->user());
         $this->toast('Skipped for today');
+    }
+
+    #[On('tasks-changed')]
+    public function refreshTasks(): void
+    {
+        // Intentionally empty: handling the event re-renders the open-task count on the tab.
     }
 
     public function togglePin(): void
@@ -240,6 +247,7 @@ class Show extends Component
             'backUrl' => $canEdit ? ($archived ? route('archived') : route('work.index')) : null,
             'backLabel' => $archived ? 'Archived' : 'Work',
             'archiveReason' => $archived ? $this->project->archiveReason() : null,
+            'openTasks' => $canEdit && ! $archived ? $this->project->tasks()->open()->count() : 0,
             'skips' => $canEdit ? $this->project->skips()->with('user:id,name')->orderByDesc('skipped_on')->limit(60)->get() : collect(),
             'meetingMissed' => $this->project->meetingNotLogged(),
         ])->layoutData([
