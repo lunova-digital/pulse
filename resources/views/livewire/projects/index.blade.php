@@ -1,13 +1,13 @@
 <div class="flex flex-col gap-6" style="animation: pFade 200ms">
     <div class="flex flex-wrap items-center gap-4">
-        <h1 class="h1 flex-1">Projects</h1>
-        <button type="button" wire:click="openNew" class="btn-primary"><x-icon name="plus" />New project</button>
+        <h1 class="h1 flex-1">{{ $kindPlural }}</h1>
+        <button type="button" wire:click="openNew" class="btn-primary"><x-icon name="plus" />New {{ strtolower($kindLabel) }}</button>
     </div>
 
     <div class="flex flex-wrap items-center gap-4">
         <label class="relative flex max-w-[400px] flex-[1_1_280px] items-center">
             <span class="pointer-events-none absolute left-4 text-text2"><x-icon name="search" /></span>
-            <input type="search" wire:model.live.debounce.250ms="search" placeholder="Search projects or clients" class="field pl-12">
+            <input type="search" wire:model.live.debounce.250ms="search" placeholder="Search {{ strtolower($kindPlural) }} or clients" class="field pl-12">
         </label>
         <div class="flex flex-wrap gap-2">
             @foreach (['all' => 'All', 'us' => 'Waiting on us', 'client' => 'Waiting on client', 'none' => 'No action'] as $key => $label)
@@ -17,7 +17,7 @@
     </div>
 
     @if ($projects->isEmpty())
-        <div class="card"><x-joy>No projects match.</x-joy></div>
+        <div class="card"><x-joy>No {{ strtolower($kindPlural) }} match.</x-joy></div>
     @endif
 
     <div class="grid grid-cols-1 gap-4 min-[600px]:grid-cols-2 lg:grid-cols-4">
@@ -45,10 +45,10 @@
     </div>
 
     @if ($showNew)
-        <x-modal title="New project" close="closeNew">
+        <x-modal title="New {{ strtolower($kindLabel) }}" close="closeNew">
             <div class="flex flex-1 flex-col gap-4 overflow-auto p-6">
                 <label class="flex flex-col gap-2">
-                    <span class="font-semibold">Project name</span>
+                    <span class="font-semibold">{{ $kindLabel }} name</span>
                     <input wire:model="name" placeholder="e.g. Clinic booking site" class="field" autofocus>
                     @error('name')<span class="text-red">{{ $message }}</span>@enderror
                 </label>
@@ -88,7 +88,7 @@
             </div>
             <div class="flex justify-end gap-2 border-t border-border px-6 py-4">
                 <button type="button" wire:click="closeNew" class="btn-secondary">Cancel</button>
-                <button type="button" wire:click="create" x-data x-bind:disabled="!$wire.name.trim()" class="btn-primary">Create project</button>
+                <button type="button" wire:click="create" x-data x-bind:disabled="!$wire.name.trim()" class="btn-primary">Create {{ strtolower($kindLabel) }}</button>
             </div>
         </x-modal>
     @endif

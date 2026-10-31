@@ -33,6 +33,10 @@
         @endforeach
     </div>
 </div>
+<label class="flex items-center gap-2 text-text2">
+    <input type="checkbox" wire:model="form.internal" class="size-4 accent-accent">
+    <span>Internal only (hidden from client-portal users)</span>
+</label>
 @error('form.label')<div class="text-red">{{ $message }}</div>@enderror
 <datalist id="pulse-labels-{{ $this->getId() }}">
     @foreach ($labels as $l)<option value="{{ $l }}"></option>@endforeach

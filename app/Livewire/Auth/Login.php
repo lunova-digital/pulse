@@ -31,8 +31,8 @@ class Login extends Component
             ]);
         }
 
-        // Always remember: this is a personal single-user tool.
-        if (! Auth::attempt(['email' => $this->email, 'password' => $this->password], remember: true)) {
+        // Always remember: Pulse is a small private team tool. Deactivated users cannot sign in.
+        if (! Auth::attempt(['email' => $this->email, 'password' => $this->password, 'is_active' => true], remember: true)) {
             RateLimiter::hit($key);
 
             throw ValidationException::withMessages(['email' => 'These credentials do not match our records.']);
@@ -41,7 +41,7 @@ class Login extends Component
         RateLimiter::clear($key);
         session()->regenerate();
 
-        return $this->redirectIntended(route('today'), navigate: false);
+        return $this->redirectIntended(url('/'), navigate: false);
     }
 
     public function render()

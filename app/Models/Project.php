@@ -4,13 +4,17 @@ namespace App\Models;
 
 use App\Enums\EntryType;
 use App\Enums\MilestoneState;
+use App\Enums\ProjectKind;
 use App\Enums\RoadmapTemplate;
 use App\Enums\WhoseMove;
+use App\Exceptions\HighPrioritySkipNotConfirmed;
 use App\Exceptions\ProjectCannotBeDeleted;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +31,8 @@ class Project extends Model
     protected function casts(): array
     {
         return [
+            'kind' => ProjectKind::class,
+            'priority_for' => 'date:Y-m-d',
             'whose_move' => WhoseMove::class,
             'whose_move_since' => 'datetime',
             'next_meeting_at' => 'datetime',
@@ -39,6 +45,7 @@ class Project extends Model
     protected static function booted(): void
     {
         static::creating(function (Project $project) {
+            $project->kind ??= ProjectKind::Project;
             $project->whose_move_since ??= now();
             $project->last_activity_at ??= now();
         });
@@ -62,10 +69,15 @@ class Project extends Model
      *
      * @param  array{name: string, client_name?: ?string, description?: ?string, whose_move?: WhoseMove, next_meeting_at?: mixed}  $attributes
      */
-    public static function start(array $attributes, RoadmapTemplate $template = RoadmapTemplate::Standard): self
+    public static function start(array $attributes, RoadmapTemplate $template = RoadmapTemplate::Standard, ?User $creator = null): self
     {
-        return DB::transaction(function () use ($attributes, $template) {
+        return DB::transaction(function () use ($attributes, $template, $creator) {
             $project = static::create($attributes);
+
+            // Whoever creates an item can always see it (owners see everything anyway).
+            if ($creator && ! $creator->isOwner()) {
+                $project->users()->attach($creator->id);
+            }
 
             if ($template !== RoadmapTemplate::Standard) {
                 $project->replaceRoadmap($template->steps(), 0);
@@ -104,6 +116,21 @@ class Project extends Model
         return $this->hasMany(Task::class);
     }
 
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class)->withTimestamps();
+    }
+
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
+    }
+
+    public function skips(): HasMany
+    {
+        return $this->hasMany(DailySkip::class);
+    }
+
     // Scopes ------------------------------------------------------------
 
     public function scopeActive(Builder $query): void
@@ -114,6 +141,26 @@ class Project extends Model
     public function scopeArchived(Builder $query): void
     {
         $query->whereNotNull('archived_at');
+    }
+
+    /** Items a user may see: owners see all, everyone else only what is assigned to them. */
+    public function scopeVisibleTo(Builder $query, User $user): void
+    {
+        if ($user->isOwner()) {
+            return;
+        }
+
+        $query->whereHas('users', fn (Builder $q) => $q->where('users.id', $user->id));
+    }
+
+    public function scopeOfKind(Builder $query, ProjectKind $kind): void
+    {
+        $query->where('kind', $kind);
+    }
+
+    public function scopePriorityOn(Builder $query, CarbonInterface $day): void
+    {
+        $query->whereDate('priority_for', $day->toDateString());
     }
 
     /** No activity for 5+ calendar days. */
@@ -197,10 +244,11 @@ class Project extends Model
         return $this->entries()->where('type', EntryType::Archived)->value('note');
     }
 
-    /** @return list<string> distinct status labels used on any project before */
-    public static function statusLabelSuggestions(): array
+    /** @return list<string> distinct status labels used on projects the user can see */
+    public static function statusLabelSuggestions(?User $user = null): array
     {
         return TimelineEntry::query()
+            ->when($user, fn ($q) => $q->whereIn('project_id', static::visibleTo($user)->select('projects.id')))
             ->whereNotNull('status_label')
             ->whereNotIn('type', [EntryType::Archived, EntryType::Reopened])
             ->distinct()
@@ -219,12 +267,65 @@ class Project extends Model
         ?string $statusLabel = null,
         ?string $note = null,
         ?WhoseMove $whoseMove = null,
+        bool $internal = false,
     ): TimelineEntry {
         if ($this->isArchived()) {
             throw new InvalidArgumentException('Archived projects are read-only. Reopen the project first.');
         }
 
-        return $this->recordEntry($type, $statusLabel, $note, $whoseMove);
+        return $this->recordEntry($type, $statusLabel, $note, $whoseMove, $internal);
+    }
+
+    // Daily check-in ----------------------------------------------------
+
+    public function isPriorityToday(): bool
+    {
+        return $this->priority_for?->isSameDay(today()) ?? false;
+    }
+
+    /** Pin as the priority for a day (today or tomorrow); null clears it. Not a timeline event. */
+    public function pinForDate(?CarbonInterface $day): void
+    {
+        if ($this->isArchived()) {
+            throw new InvalidArgumentException('Archived projects cannot be a priority.');
+        }
+
+        $this->forceFill(['priority_for' => $day?->toDateString()])->save();
+    }
+
+    /** Checked in = an update was posted today, or it was skipped today. */
+    public function isCheckedInToday(): bool
+    {
+        return $this->hasUpdateToday() || $this->isSkippedToday();
+    }
+
+    public function hasUpdateToday(): bool
+    {
+        return $this->entries()->where('created_at', '>=', today())->exists();
+    }
+
+    public function isSkippedToday(): bool
+    {
+        return $this->skips()->whereDate('skipped_on', today()->toDateString())->exists();
+    }
+
+    /** The daily check-in for an item with nothing to report. High priority needs a second confirmation. */
+    public function skipToday(User $user, bool $confirmedHigh = false): DailySkip
+    {
+        if ($this->isArchived()) {
+            throw new InvalidArgumentException('Archived projects are not part of the daily check-in.');
+        }
+
+        $high = $this->isPriorityToday();
+
+        if ($high && ! $confirmedHigh) {
+            throw new HighPrioritySkipNotConfirmed;
+        }
+
+        return DailySkip::firstOrCreate(
+            ['project_id' => $this->id, 'skipped_on' => today()->toDateString()],
+            ['user_id' => $user->id, 'was_high' => $high],
+        );
     }
 
     public function changeWhoseMove(WhoseMove $to): ?TimelineEntry
@@ -348,11 +449,14 @@ class Project extends Model
         ?string $statusLabel,
         ?string $note,
         ?WhoseMove $whoseMove = null,
+        bool $internal = false,
     ): TimelineEntry {
-        return DB::transaction(function () use ($type, $statusLabel, $note, $whoseMove) {
+        return DB::transaction(function () use ($type, $statusLabel, $note, $whoseMove, $internal) {
             $at = now();
 
             $entry = $this->entries()->create([
+                'user_id' => auth()->id(),
+                'visible_to_client' => ! $internal,
                 'type' => $type,
                 'status_label' => filled($statusLabel) ? trim($statusLabel) : null,
                 'note' => filled($note) ? trim($note) : null,

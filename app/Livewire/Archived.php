@@ -10,7 +10,7 @@ class Archived extends Component
     public function render()
     {
         return view('livewire.archived', [
-            'projects' => Project::archived()->orderByDesc('archived_at')->get(),
+            'projects' => Project::archived()->visibleTo(auth()->user())->orderByDesc('archived_at')->get(),
         ])->layoutData(['active' => 'archived', 'title' => 'Archived']);
     }
 }

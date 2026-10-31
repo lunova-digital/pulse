@@ -2,11 +2,12 @@
 
 namespace Database\Seeders;
 
+use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 
-/** Creates (or updates) the one Pulse user from PULSE_EMAIL / PULSE_PASSWORD. */
+/** Creates (or updates) the owner account from PULSE_EMAIL / PULSE_PASSWORD. Team members are added in the app. */
 class UserSeeder extends Seeder
 {
     public function run(): void
@@ -20,7 +21,7 @@ class UserSeeder extends Seeder
 
         User::updateOrCreate(
             ['email' => $email],
-            ['name' => 'Pulse', 'password' => $password],
+            ['name' => 'Pulse', 'password' => $password, 'role' => Role::Owner, 'can_manage_clients' => true, 'is_active' => true],
         );
     }
 }

@@ -3,6 +3,9 @@
         <div class="font-semibold">Signed in</div>
         <div class="truncate text-text2">{{ auth()->user()->email }}</div>
     </div>
+    @foreach ($extra as [$label, $icon, $url])
+        <a href="{{ $url }}" class="menu-item hover:no-underline"><x-icon :name="$icon" />{{ $label }}</a>
+    @endforeach
     <x-theme-toggle :with-label="true" />
     <form method="POST" action="{{ route('logout') }}">
         @csrf

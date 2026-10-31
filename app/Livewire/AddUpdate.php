@@ -20,7 +20,9 @@ class AddUpdate extends Component
     #[On('open-update')]
     public function show(?int $projectId = null, array $preset = []): void
     {
-        $project = $projectId ? Project::active()->find($projectId) : null;
+        abort_unless(auth()->user()->isStaff(), 403);
+
+        $project = $projectId ? Project::active()->visibleTo(auth()->user())->find($projectId) : null;
 
         $this->form->resetValidation();
         $this->form->fillFor($project, $preset);
@@ -36,13 +38,15 @@ class AddUpdate extends Component
     public function updatedFormProjectId($value): void
     {
         // Picking a project starts from its current whose-move.
-        if ($project = Project::active()->find($value)) {
+        if ($project = Project::active()->visibleTo(auth()->user())->find($value)) {
             $this->form->move = $project->whose_move->value;
         }
     }
 
     public function post(): void
     {
+        abort_unless(auth()->user()->isStaff(), 403);
+
         $this->form->submit();
 
         $name = Project::find($this->form->projectId)->name;
@@ -55,9 +59,9 @@ class AddUpdate extends Component
     public function render()
     {
         return view('livewire.add-update', [
-            'projects' => $this->open && ! $this->fixed ? Project::active()->orderBy('name')->get(['id', 'name']) : collect(),
+            'projects' => $this->open && ! $this->fixed ? Project::active()->visibleTo(auth()->user())->orderBy('name')->get(['id', 'name']) : collect(),
             'projectName' => $this->fixed ? Project::find($this->form->projectId)?->name : null,
-            'labels' => $this->open ? Project::statusLabelSuggestions() : [],
+            'labels' => $this->open ? Project::statusLabelSuggestions(auth()->user()) : [],
         ]);
     }
 }

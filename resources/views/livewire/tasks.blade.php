@@ -10,6 +10,7 @@
             </select>
         </div>
         <input type="date" wire:model="due" class="field min-w-0 flex-[0_1_160px] px-2" aria-label="Due date">
+        <label class="flex h-11 items-center gap-2 text-text2"><input type="checkbox" wire:model="high" class="size-4 accent-accent">High priority</label>
         <button type="submit" x-data x-bind:disabled="!$wire.title.trim()" class="btn-primary">Add</button>
         @error('title')<div class="w-full text-red">{{ $message }}</div>@enderror
     </form>
@@ -36,6 +37,11 @@
                 </button>
                 <div @class(['min-w-0 flex-[1_1_200px]', 'text-text2 line-through' => $task->isDone(), 'text-text' => ! $task->isDone()])>{{ $task->title }}</div>
                 <div class="ml-auto flex flex-wrap items-center gap-2">
+                    @unless ($task->isDone())
+                        <button type="button" wire:click="toggleHigh({{ $task->id }})" title="Toggle high priority"
+                            @class(['inline-flex h-7 items-center rounded-lg border px-2 font-medium transition-colors',
+                                'border-red bg-red-t text-red' => $task->is_high, 'border-border text-text2 hover:text-text' => ! $task->is_high])>High</button>
+                    @endunless
                     @if ($task->project)
                         <a href="{{ route('projects.show', $task->project) }}" class="inline-flex h-7 items-center rounded-lg border border-border bg-bg px-2 font-medium text-text2 hover:text-text hover:no-underline">{{ $task->project->name }}</a>
                     @endif

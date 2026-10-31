@@ -13,6 +13,8 @@ class Today extends Component
 
     public function nudge(int $projectId): void
     {
+        Project::active()->visibleTo(auth()->user())->findOrFail($projectId);
+
         $this->dispatch('open-update', projectId: $projectId, preset: [
             'type' => 'note',
             'label' => 'Nudged client',
@@ -22,7 +24,8 @@ class Today extends Component
 
     public function render()
     {
-        $base = fn () => Project::active()->with('latestEntry');
+        $user = auth()->user();
+        $base = fn () => Project::active()->visibleTo($user)->with('latestEntry');
 
         $sections = [
             [

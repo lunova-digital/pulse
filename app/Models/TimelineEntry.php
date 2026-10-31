@@ -23,6 +23,7 @@ class TimelineEntry extends Model
         return [
             'type' => EntryType::class,
             'whose_move' => WhoseMove::class,
+            'visible_to_client' => 'boolean',
             'created_at' => 'datetime',
         ];
     }
@@ -36,5 +37,10 @@ class TimelineEntry extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

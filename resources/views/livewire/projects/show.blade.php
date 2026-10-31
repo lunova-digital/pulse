@@ -1,8 +1,10 @@
 <div class="mx-auto flex max-w-[800px] flex-col gap-6" style="animation: pFade 200ms">
-    <a href="{{ $archived ? route('archived') : route('projects.index') }}"
-        class="-my-2 -ml-2 flex h-11 items-center gap-2 self-start rounded-lg px-2 font-semibold text-text2 hover:bg-hover hover:text-text hover:no-underline">
-        <x-icon name="back" />{{ $archived ? 'Archived' : 'Projects' }}
-    </a>
+    @if ($backUrl)
+        <a href="{{ $backUrl }}"
+            class="-my-2 -ml-2 flex h-11 items-center gap-2 self-start rounded-lg px-2 font-semibold text-text2 hover:bg-hover hover:text-text hover:no-underline">
+            <x-icon name="back" />{{ $backLabel }}
+        </a>
+    @endif
 
     {{-- Header --}}
     <section class="card flex flex-col gap-4 p-4 md:p-6">
@@ -11,7 +13,7 @@
                 <h1 class="h1 text-pretty">{{ $project->name }}</h1>
                 <div class="text-text2">{{ $project->client_name }}</div>
             </div>
-            @unless ($archived)
+            @if ($canEdit && ! $archived)
                 <button type="button" wire:click="togglePin" title="{{ $project->is_pinned ? 'Unpin' : 'Pin' }}"
                     @class(['inline-flex size-11 items-center justify-center rounded-lg border transition-all',
                         'border-accent bg-accent-t text-accent-fg' => $project->is_pinned, 'border-border bg-transparent text-text2' => ! $project->is_pinned])>
@@ -23,14 +25,14 @@
                         <button type="button" wire:click="openArchive" x-on:click="open = false" class="menu-item"><x-icon name="archive" />Archive project</button>
                     </div>
                 </div>
-            @endunless
+            @endif
         </div>
 
         @if ($project->description)
             <div class="-mt-2 text-pretty text-text2">{{ $project->description }}</div>
         @endif
 
-        @unless ($archived)
+        @if ($canEdit && ! $archived)
             <div class="flex flex-wrap items-center gap-4">
                 <div class="relative" x-data="{ open: false }" x-on:keydown.escape.window="open = false">
                     <button type="button" x-on:click="open = !open" title="Change whose move"
@@ -52,6 +54,8 @@
                 </label>
                 @if ($meetingMissed)<span class="tag-red">Meeting not logged</span>@endif
             </div>
+        @elseif (! $archived)
+            <div><x-move-pill :project="$project" /></div>
         @else
             <div class="flex flex-wrap items-center gap-4">
                 <x-move-pill :project="$project" />
@@ -61,17 +65,19 @@
                 <div class="font-semibold">Archive reason</div>
                 <div class="text-pretty">{{ $archiveReason }}</div>
             </div>
-            <button type="button" wire:click="openReopen" class="btn-primary self-start"><x-icon name="rotate" />Reopen project</button>
-        @endunless
+            @if ($canEdit)
+                <button type="button" wire:click="openReopen" class="btn-primary self-start"><x-icon name="rotate" />Reopen project</button>
+            @endif
+        @endif
     </section>
 
     {{-- Roadmap --}}
     <section class="card flex flex-col gap-6 p-4 md:p-6">
         <div class="flex items-center gap-2">
             <h2 class="h2 flex-1">Roadmap</h2>
-            @unless ($archived)
+            @if ($canEdit && ! $archived)
                 <button type="button" wire:click="openRoadmap" class="btn-ghost -my-2 -mr-2">Edit roadmap</button>
-            @endunless
+            @endif
         </div>
         <div class="flex flex-col gap-2 md:flex-row">
             @foreach ($milestones as $i => $m)
@@ -100,7 +106,7 @@
     </section>
 
     {{-- Add update --}}
-    @unless ($archived)
+    @if ($canEdit && ! $archived)
         <section class="card flex flex-col gap-4 p-4 md:p-6">
             <h2 class="h2">Add update</h2>
             <x-update-fields :labels="$labels" :rows="3" />
@@ -109,7 +115,7 @@
                     x-bind:disabled="!($wire.form.label.trim() || $wire.form.note.trim())" class="btn-primary">Post update</button>
             </div>
         </section>
-    @endunless
+    @endif
 
     {{-- Timeline --}}
     <section class="flex flex-col gap-4">
@@ -142,7 +148,8 @@
                                 @if ($entry->status_label)
                                     <x-move-pill :move="$entry->whose_move" :label="$entry->status_label" />
                                 @endif
-                                <span class="ml-auto whitespace-nowrap text-text2">{{ $entry->created_at->format('g:i A') }}</span>
+                                @if ($canEdit && ! $entry->visible_to_client)<span class="tag-gray">Internal</span>@endif
+                                <span class="ml-auto whitespace-nowrap text-text2">{{ $canEdit && $entry->author ? $entry->author->name.' · ' : '' }}{{ $entry->created_at->format('g:i A') }}</span>
                             </div>
                             @if ($entry->note)<div class="leading-6 text-pretty">{{ $entry->note }}</div>@endif
                         </div>

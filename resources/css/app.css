@@ -98,6 +98,7 @@ html[data-theme='dark'] {
 
     .pill { @apply inline-flex h-6 items-center gap-2 rounded-lg px-2 font-medium whitespace-nowrap; }
     .tag-gray { @apply inline-flex h-6 items-center rounded-lg bg-gray-t px-2 font-medium whitespace-nowrap text-text2; }
+    .tag-green { @apply inline-flex h-6 items-center rounded-lg bg-green-t px-2 font-medium whitespace-nowrap text-green; }
     .tag-red { @apply inline-flex h-6 items-center rounded-lg bg-red-t px-2 font-medium whitespace-nowrap text-red; }
 
     .menu-item { @apply flex h-11 w-full items-center gap-2 rounded-lg border-0 bg-transparent px-2 text-left text-text hover:bg-hover; }

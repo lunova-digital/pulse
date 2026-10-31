@@ -39,14 +39,30 @@ class AuthTest extends TestCase
         $this->seed(UserSeeder::class); // idempotent
 
         $this->assertSame(1, User::count());
+        $this->assertTrue(User::first()->isOwner());
 
         Livewire::test(Login::class)
             ->set('email', 'owner@pulse.test')
             ->set('password', 'a-strong-password')
             ->call('login')
-            ->assertRedirect(route('today'));
+            ->assertRedirect(url('/'));
 
         $this->assertAuthenticated();
+    }
+
+    public function test_deactivated_users_cannot_sign_in_and_are_signed_out(): void
+    {
+        $user = User::factory()->member()->create(['email' => 'gone@pulse.test', 'is_active' => false]);
+
+        Livewire::test(Login::class)
+            ->set('email', 'gone@pulse.test')
+            ->set('password', 'password')
+            ->call('login')
+            ->assertHasErrors('email');
+        $this->assertGuest();
+
+        // A session that was open when the account was deactivated ends on the next request.
+        $this->actingAs($user)->get('/daily')->assertRedirect('/login');
     }
 
     public function test_wrong_password_is_rejected(): void

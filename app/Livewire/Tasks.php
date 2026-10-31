@@ -16,6 +16,8 @@ class Tasks extends Component
 
     public string $due = '';
 
+    public bool $high = false;
+
     public function add(): void
     {
         $data = $this->validate([
@@ -24,19 +26,28 @@ class Tasks extends Component
             'due' => ['nullable', 'date'],
         ]);
 
+        $user = auth()->user();
+
+        if ($data['projectId']) {
+            // Only active projects the user can see.
+            Project::active()->visibleTo($user)->findOrFail($data['projectId']);
+        }
+
         Task::create([
             'title' => trim($data['title']),
             'project_id' => $data['projectId'] ?: null,
+            'user_id' => $user->id,
             'due_date' => filled($data['due']) ? $data['due'] : null,
+            'is_high' => $this->high,
         ]);
 
-        $this->reset('title', 'due');
+        $this->reset('title', 'due', 'high');
         $this->tab = 'open';
     }
 
     public function toggle(int $id): void
     {
-        $task = Task::with('project')->findOrFail($id);
+        $task = Task::visibleTo(auth()->user())->with('project')->findOrFail($id);
 
         if ($task->isDone()) {
             $task->reopen();
@@ -51,6 +62,12 @@ class Tasks extends Component
         }
     }
 
+    public function toggleHigh(int $id): void
+    {
+        $task = Task::visibleTo(auth()->user())->findOrFail($id);
+        $task->update(['is_high' => ! $task->is_high]);
+    }
+
     public function setTab(string $tab): void
     {
         $this->tab = $tab === 'done' ? 'done' : 'open';
@@ -58,7 +75,9 @@ class Tasks extends Component
 
     public function render()
     {
-        $tasks = Task::with('project')
+        $user = auth()->user();
+
+        $tasks = Task::visibleTo($user)->with('project')
             ->when($this->tab === 'open',
                 fn ($q) => $q->open()->orderByRaw('due_date is null')->orderBy('due_date')->orderBy('id'),
                 fn ($q) => $q->done()->orderByDesc('completed_at'))
@@ -66,10 +85,10 @@ class Tasks extends Component
 
         return view('livewire.tasks', [
             'tasks' => $tasks,
-            'openCount' => Task::open()->count(),
-            'doneCount' => Task::done()->count(),
+            'openCount' => Task::visibleTo($user)->open()->count(),
+            'doneCount' => Task::visibleTo($user)->done()->count(),
             // Archived projects are read-only, so tasks can only link to active ones.
-            'projects' => Project::active()->orderBy('name')->get(['id', 'name']),
+            'projects' => Project::active()->visibleTo($user)->orderBy('name')->get(['id', 'name']),
         ])->layoutData(['active' => 'tasks', 'title' => 'Tasks']);
     }
 }

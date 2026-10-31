@@ -22,6 +22,9 @@ class UpdateForm extends Form
 
     public string $move = 'us';
 
+    /** Hidden from client-portal users. */
+    public bool $internal = false;
+
     protected function rules(): array
     {
         return [
@@ -60,16 +63,17 @@ class UpdateForm extends Form
         }
 
         $type = EntryType::from($this->type);
-        $project = Project::active()->findOrFail($this->projectId);
+        $project = Project::active()->visibleTo(auth()->user())->findOrFail($this->projectId);
 
         $entry = $project->postEntry(
             $type,
             trim($this->label) !== '' ? $this->label : $type->label(),
             $this->note,
             WhoseMove::from($this->move),
+            $this->internal,
         );
 
-        $this->reset('label', 'note');
+        $this->reset('label', 'note', 'internal');
         $this->move = $project->whose_move->value;
 
         return $entry;

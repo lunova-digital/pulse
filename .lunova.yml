@@ -20,3 +20,4 @@ hooks:
   - php artisan event:cache
   - php artisan storage:link
 health_path: /login
+scheduler: true

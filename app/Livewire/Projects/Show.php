@@ -34,13 +34,16 @@ class Show extends Component
 
     public function mount(Project $project): void
     {
+        $this->authorize('view', $project);
+
         $this->project = $project;
         $this->meeting = $project->next_meeting_at?->format('Y-m-d\TH:i') ?? '';
-        $this->form->fillFor($project->isArchived() ? null : $project);
+        $this->form->fillFor($project->isArchived() || ! auth()->user()->can('update', $project) ? null : $project);
     }
 
     protected function ensureEditable(): void
     {
+        $this->authorize('update', $this->project);
         abort_if($this->project->isArchived(), 403, 'Archived projects are read-only.');
     }
 
@@ -94,6 +97,7 @@ class Show extends Component
 
     public function openReopen(): void
     {
+        $this->authorize('update', $this->project);
         abort_unless($this->project->isArchived(), 403);
         $this->reset('reason');
         $this->resetValidation();
@@ -121,6 +125,7 @@ class Show extends Component
         }
 
         abort_unless($this->modal === 'reopen', 422);
+        $this->authorize('update', $this->project);
         $this->project->reopen($this->reason);
         $this->form->fillFor($this->project);
         $this->modal = null;
@@ -207,7 +212,11 @@ class Show extends Component
 
     public function render()
     {
-        $entries = $this->project->entries()
+        $user = auth()->user();
+        $canEdit = $user->can('update', $this->project);
+
+        $entries = $this->project->entries()->with('author')
+            ->when(! $canEdit, fn ($q) => $q->where('visible_to_client', true))
             ->when($this->filter === 'archive', fn ($q) => $q->whereIn('type', [EntryType::Archived, EntryType::Reopened]))
             ->when($this->filter !== 'all' && $this->filter !== 'archive' && EntryType::tryFrom($this->filter), fn ($q) => $q->where('type', $this->filter))
             ->get();
@@ -218,12 +227,15 @@ class Show extends Component
             'milestones' => $this->project->milestones,
             'groups' => $entries->groupBy(fn ($e) => \App\Support\Fmt::dayGroup($e->created_at)),
             'archived' => $archived,
-            'labels' => $archived ? [] : Project::statusLabelSuggestions(),
+            'labels' => $archived || ! $canEdit ? [] : Project::statusLabelSuggestions($user),
+            'canEdit' => $canEdit,
+            'backUrl' => $canEdit ? ($archived ? route('archived') : route($this->project->kind->route())) : null,
+            'backLabel' => $archived ? 'Archived' : $this->project->kind->plural(),
             'archiveReason' => $archived ? $this->project->archiveReason() : null,
             'meetingMissed' => $this->project->meetingNotLogged(),
         ])->layoutData([
-            'active' => $archived ? 'archived' : 'projects',
-            'fabProject' => $archived ? null : $this->project->id,
+            'active' => $archived ? 'archived' : ($this->project->kind->value === 'product' ? 'products' : 'projects'),
+            'fabProject' => $archived || ! $canEdit ? null : $this->project->id,
             'title' => $this->project->name,
         ]);
     }

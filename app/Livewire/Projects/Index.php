@@ -2,17 +2,23 @@
 
 namespace App\Livewire\Projects;
 
+use App\Enums\ProjectKind;
 use App\Enums\RoadmapTemplate;
 use App\Enums\WhoseMove;
 use App\Livewire\Concerns\RefreshesOnEntry;
 use App\Models\Project;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
 class Index extends Component
 {
     use RefreshesOnEntry;
+
+    /** project | product: the route decides which list this page shows. */
+    #[Locked]
+    public string $kind = 'project';
 
     #[Url(as: 'q')]
     public string $search = '';
@@ -33,6 +39,11 @@ class Index extends Component
     public string $move = 'us';
 
     public string $meeting = '';
+
+    public function mount(string $kind = 'project'): void
+    {
+        $this->kind = ProjectKind::from($kind)->value;
+    }
 
     public function openNew(): void
     {
@@ -63,9 +74,10 @@ class Index extends Component
             'description' => filled($data['description']) ? trim($data['description']) : null,
             'whose_move' => WhoseMove::from($data['move']),
             'next_meeting_at' => filled($data['meeting']) ? $data['meeting'] : null,
-        ], RoadmapTemplate::from($data['template']));
+            'kind' => ProjectKind::from($this->kind),
+        ], RoadmapTemplate::from($data['template']), auth()->user());
 
-        session()->flash('toast', 'Project created');
+        session()->flash('toast', ProjectKind::from($this->kind)->label().' created');
 
         return $this->redirectRoute('projects.show', $project);
     }
@@ -74,7 +86,11 @@ class Index extends Component
     {
         $term = trim($this->search);
 
+        $kind = ProjectKind::from($this->kind);
+
         $projects = Project::active()
+            ->ofKind($kind)
+            ->visibleTo(auth()->user())
             ->with('latestEntry')
             ->when(in_array($this->filter, ['us', 'client', 'none'], true), fn ($q) => $q->where('whose_move', $this->filter))
             ->when($term !== '', fn ($q) => $q->where(fn ($q) => $q
@@ -84,7 +100,7 @@ class Index extends Component
             ->orderByDesc('last_activity_at')
             ->get();
 
-        return view('livewire.projects.index', ['projects' => $projects])
-            ->layoutData(['active' => 'projects', 'title' => 'Projects']);
+        return view('livewire.projects.index', ['projects' => $projects, 'kindLabel' => $kind->label(), 'kindPlural' => $kind->plural()])
+            ->layoutData(['active' => $kind->plural() === 'Products' ? 'products' : 'projects', 'title' => $kind->plural()]);
     }
 }
