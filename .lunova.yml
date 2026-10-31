@@ -21,3 +21,4 @@ hooks:
   - php artisan storage:link
 health_path: /login
 scheduler: true
+queue: true
