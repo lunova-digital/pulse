@@ -52,7 +52,8 @@ Create the database, run `php artisan migrate --force` and `php artisan db:seed 
 ## Tabs
 
 - **Work** (projects and products in one list; each card has a type tag and the page has a type filter, and old `/projects` and `/products` links redirect here): the pin button makes an item *today's priority*. Priority items are listed first and stay pinned from day to day until you change them, so if you set nothing the previous priority carries over. Every active item must be **touched** each day: post an update, or press **Skip today** on its card (or **Select** several and skip in bulk; priority items are skipped one by one only). A skipped item disappears until tomorrow. Each skip is its own row (who, which item, which day) in a collapsed *Skip history*, on the list and on the item's page. The banner shows how many items are still untouched.
-- **Today**, **Tasks**, **Archived**: what needs attention now, loose to-dos, and finished work.
+- **Tasks** follow the same daily rule: every open task due today, overdue or undated must be finished or skipped (**Skip today** per task, or **Select** for bulk; High tasks are skipped one by one). Later-dated tasks wait for their day. Tasks can repeat daily, weekly or monthly: finishing one creates the next, and skipping one moves it to its next day. Skips are listed per task in a collapsed *Skip history*, and the bot's not-touched message includes tasks.
+- **Today** and **Archived**: what needs attention now, and finished work.
 - **Clients**: a funnel with editable stages. Every logged conversation needs a next follow-up date (or "no follow-up needed"). *Start project* creates a project under the client's name and moves them to the won stage.
 - **Team** (owner only): add team members and client-portal users and pick exactly which projects and products each can open.
 

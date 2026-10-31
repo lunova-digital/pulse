@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Client;
 use App\Models\DailySkip;
 use App\Models\Project;
+use App\Models\Task;
 
 /** Builds the morning message (follow-ups and today's priority) and the evening prompt to set tomorrow's. */
 class ReminderDigest
@@ -53,25 +54,46 @@ class ReminderDigest
         return implode("\n", $lines);
     }
 
-    /** The "not touched yet" nudge. Null once every project has an update or a skip today. */
+    /** The "not touched yet" nudge for projects and tasks. Null once everything has an update, a skip or is done. */
     public function untouched(int $show = 25): ?string
     {
-        $query = Project::untouchedToday();
-        $count = $query->count();
+        $projects = Project::untouchedToday();
+        $tasks = Task::untouchedToday();
+        $projectCount = $projects->count();
+        $taskCount = $tasks->count();
 
-        if ($count === 0) {
+        if ($projectCount + $taskCount === 0) {
             return null;
         }
 
-        $projects = $query->orderByDesc('is_pinned')->orderBy('name')->limit($show)->get();
-        $lines = ['<b>Pulse · '.$count.' not touched today</b>', 'Post an update or skip each one for today.', ''];
+        $parts = array_filter([
+            $projectCount ? $projectCount.($projectCount === 1 ? ' project' : ' projects') : null,
+            $taskCount ? $taskCount.($taskCount === 1 ? ' task' : ' tasks') : null,
+        ]);
+        $lines = ['<b>Pulse · '.implode(' and ', $parts).' not touched today</b>', 'Post an update, finish or skip each one for today.'];
 
-        foreach ($projects as $project) {
-            $lines[] = '• <a href="'.e(route('projects.show', $project)).'">'.e($project->name).'</a>'.($project->is_pinned ? ' ★' : '');
+        if ($projectCount) {
+            $lines[] = '';
+            $lines[] = '<b>Projects and products</b>';
+            $list = $projects->orderByDesc('is_pinned')->orderBy('name')->limit($show)->get();
+            foreach ($list as $project) {
+                $lines[] = '• <a href="'.e(route('projects.show', $project)).'">'.e($project->name).'</a>'.($project->is_pinned ? ' ★' : '');
+            }
+            if ($projectCount > $list->count()) {
+                $lines[] = '…and '.($projectCount - $list->count()).' more';
+            }
         }
 
-        if ($count > $projects->count()) {
-            $lines[] = '…and '.($count - $projects->count()).' more';
+        if ($taskCount) {
+            $lines[] = '';
+            $lines[] = '<b>Tasks</b>';
+            $list = $tasks->orderByDesc('is_high')->orderByRaw('due_date is null')->orderBy('due_date')->orderBy('id')->limit($show)->get();
+            foreach ($list as $task) {
+                $lines[] = '• '.e($task->title).($task->is_high ? ' ★' : '');
+            }
+            if ($taskCount > $list->count()) {
+                $lines[] = '…and '.($taskCount - $list->count()).' more';
+            }
         }
 
         $lines[] = '';
