@@ -62,7 +62,7 @@ class AuthTest extends TestCase
         $this->assertGuest();
 
         // A session that was open when the account was deactivated ends on the next request.
-        $this->actingAs($user)->get('/daily')->assertRedirect('/login');
+        $this->actingAs($user)->get('/projects')->assertRedirect('/login');
     }
 
     public function test_wrong_password_is_rejected(): void

@@ -23,16 +23,18 @@ class TelegramTest extends TestCase
 
     public function test_nothing_is_sent_until_the_bot_is_configured(): void
     {
+        config(['services.telegram.bot_token' => null, 'services.telegram.chat_id' => null]);
         Http::fake();
         Client::factory()->followUp(today())->create();
 
         $this->artisan('pulse:telegram-digest')->assertSuccessful();
+        $this->artisan('pulse:telegram-plan')->assertSuccessful();
         $this->artisan('pulse:telegram-due')->assertSuccessful();
 
         Http::assertNothingSent();
     }
 
-    public function test_digest_lists_follow_ups_overdue_clients_and_unchecked_priorities(): void
+    public function test_digest_lists_follow_ups_overdue_clients_and_priorities(): void
     {
         $this->configure();
         Http::fake(['api.telegram.org/*' => Http::response(['ok' => true])]);
@@ -42,10 +44,10 @@ class TelegramTest extends TestCase
         Client::factory()->followUp(today()->addDay())->create(['name' => 'Tomorrow Inc']);
         Client::factory()->followUp(today())->inStage('Won')->create(['name' => 'Already Won']);
         $open = Project::factory()->create(['name' => 'Needs update']);
-        $open->pinForDate(today());
-        $done = Project::factory()->create(['name' => 'Posted already']);
-        $done->pinForDate(today());
-        $done->postEntry(\App\Enums\EntryType::Note, 'Hi', 'Done');
+        $open->togglePriority();
+        $skipped = Project::factory()->create(['name' => 'Skipped one']);
+        $skipped->togglePriority();
+        $skipped->skipToday(\App\Models\User::factory()->create());
 
         $this->artisan('pulse:telegram-digest')->assertSuccessful();
 
@@ -60,7 +62,7 @@ class TelegramTest extends TestCase
                 && str_contains($text, 'Late Ltd') && str_contains($text, '2d overdue')
                 && str_contains($text, 'Needs update')
                 && ! str_contains($text, 'Tomorrow Inc') && ! str_contains($text, 'Already Won')
-                && ! str_contains($text, 'Posted already');
+                && ! str_contains($text, 'Skipped one');
         });
     }
 
@@ -126,6 +128,38 @@ class TelegramTest extends TestCase
 
         $this->artisan('pulse:telegram-due');
         $this->assertSame(1, ReminderLog::count());
+    }
+
+    public function test_plan_reminder_asks_for_tomorrows_priority_and_lists_what_carries_over(): void
+    {
+        $this->configure();
+        Http::fake(['api.telegram.org/*' => Http::response(['ok' => true])]);
+        Project::factory()->create(['name' => 'Carries over', 'is_pinned' => true]);
+        Project::factory()->create(['name' => 'Not pinned']);
+
+        $this->artisan('pulse:telegram-plan')->assertSuccessful();
+
+        Http::assertSentCount(1);
+        Http::assertSent(fn (Request $r) => str_contains($r['text'], 'plan tomorrow')
+            && str_contains($r['text'], 'Carries over') && ! str_contains($r['text'], 'Not pinned'));
+    }
+
+    public function test_plan_reminder_still_sends_when_nothing_is_pinned(): void
+    {
+        $this->configure();
+        Http::fake(['api.telegram.org/*' => Http::response(['ok' => true])]);
+
+        $this->artisan('pulse:telegram-plan')->assertSuccessful();
+
+        Http::assertSent(fn (Request $r) => str_contains($r['text'], 'Nothing is pinned'));
+    }
+
+    public function test_plan_reminder_is_scheduled_at_ten_pm(): void
+    {
+        $event = collect(app(Schedule::class)->events())->first(fn ($e) => str_contains($e->command, 'pulse:telegram-plan'));
+
+        $this->assertNotNull($event);
+        $this->assertSame('0 22 * * *', $event->expression);
     }
 
     public function test_both_commands_are_scheduled(): void

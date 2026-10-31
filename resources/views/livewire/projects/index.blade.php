@@ -1,6 +1,9 @@
 <div class="flex flex-col gap-6" style="animation: pFade 200ms">
     <div class="flex flex-wrap items-center gap-4">
         <h1 class="h1 flex-1">{{ $kindPlural }}</h1>
+        @if ($projects->isNotEmpty())
+            <button type="button" wire:click="toggleSelecting" @class(['btn-secondary', 'border-accent' => $selecting])>{{ $selecting ? 'Done' : 'Select' }}</button>
+        @endif
         <button type="button" wire:click="openNew" class="btn-primary"><x-icon name="plus" />New {{ strtolower($kindLabel) }}</button>
     </div>
 
@@ -20,29 +23,69 @@
         <div class="card"><x-joy>No {{ strtolower($kindPlural) }} match.</x-joy></div>
     @endif
 
-    <div class="grid grid-cols-1 gap-4 min-[600px]:grid-cols-2 lg:grid-cols-4">
-        @foreach ($projects as $project)
-            <a wire:key="project-{{ $project->id }}" href="{{ route('projects.show', $project) }}"
-                class="card flex min-h-[200px] min-w-0 flex-col gap-2 p-4 text-text transition-colors hover:border-text2 hover:no-underline">
-                <div class="flex items-start gap-2">
-                    <div class="min-w-0 flex-1 text-base leading-6 font-semibold">{{ $project->name }}</div>
-                    @if ($project->is_pinned)
-                        <span title="Pinned" class="pt-[3px] text-text2"><x-icon name="pin" /></span>
+    @if ($selecting)
+        <div class="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-hover px-4 py-2">
+            <span class="flex-1 text-text2">{{ count($selected) }} selected. Not working on them today? Skip them and they come back tomorrow.</span>
+            <button type="button" wire:click="skipSelected" @disabled(! $selected) class="btn-primary">Skip for today</button>
+        </div>
+    @endif
+
+    @php($pinned = $projects->where('is_pinned', true))
+    @foreach ([['Priority today', $pinned], [$pinned->isEmpty() ? null : 'Everything else', $projects->where('is_pinned', false)]] as [$heading, $group])
+        @continue($group->isEmpty())
+        @if ($heading)<h2 class="h2 -mb-2">{{ $heading }} <span class="text-text2">{{ $group->count() }}</span></h2>@endif
+        <div class="grid grid-cols-1 gap-4 min-[600px]:grid-cols-2 lg:grid-cols-4">
+            @foreach ($group as $project)
+                <div wire:key="project-{{ $project->id }}"
+                    @class(['card relative flex min-h-[200px] min-w-0 flex-col gap-2 p-4 text-text transition-colors hover:border-text2', 'border-accent' => $project->is_pinned])>
+                    <div class="flex items-start gap-2">
+                        @if ($selecting && ! $project->is_pinned)
+                            <input type="checkbox" wire:model.live="selected" value="{{ $project->id }}" aria-label="Select {{ $project->name }}" class="mt-1 size-5 shrink-0 accent-accent">
+                        @endif
+                        <a href="{{ route('projects.show', $project) }}" class="min-w-0 flex-1 text-base leading-6 font-semibold text-text after:absolute after:inset-0 after:content-[''] hover:no-underline">{{ $project->name }}</a>
+                        @can('update', $project)
+                            <button type="button" wire:click="togglePin({{ $project->id }})" title="{{ $project->is_pinned ? 'Remove from priority' : 'Make priority' }}"
+                                @class(['relative z-10 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border transition-all',
+                                    'border-accent bg-accent-t text-accent-fg' => $project->is_pinned, 'border-border bg-transparent text-text2 hover:text-text' => ! $project->is_pinned])>
+                                <x-icon name="pin" />
+                            </button>
+                        @endcan
+                    </div>
+                    <div><x-move-pill :project="$project" /></div>
+                    <div class="line-clamp-2 text-pretty">{{ $project->statusLine() }}</div>
+                    @if ($project->next_meeting_at)
+                        <div class="flex items-center gap-2 text-text2"><x-icon name="cal" /><span>Meet: {{ \App\Support\Fmt::meeting($project->next_meeting_at) }}</span></div>
                     @endif
+                    <div class="mt-auto flex flex-wrap items-center gap-2 pt-2 text-text2">
+                        <span class="flex-1 whitespace-nowrap">Updated {{ \App\Support\Fmt::ago($project->last_activity_at) }}</span>
+                        @if ($project->meetingNotLogged())<span class="tag-red">Meeting not logged</span>@endif
+                        @if ($project->isStale())<span class="tag-gray">Stale</span>@endif
+                    </div>
                 </div>
-                <div><x-move-pill :project="$project" /></div>
-                <div class="line-clamp-2 text-pretty">{{ $project->statusLine() }}</div>
-                @if ($project->next_meeting_at)
-                    <div class="flex items-center gap-2 text-text2"><x-icon name="cal" /><span>Meet: {{ \App\Support\Fmt::meeting($project->next_meeting_at) }}</span></div>
-                @endif
-                <div class="mt-auto flex flex-wrap items-center gap-2 pt-2 text-text2">
-                    <span class="flex-1 whitespace-nowrap">Updated {{ \App\Support\Fmt::ago($project->last_activity_at) }}</span>
-                    @if ($project->meetingNotLogged())<span class="tag-red">Meeting not logged</span>@endif
-                    @if ($project->isStale())<span class="tag-gray">Stale</span>@endif
+            @endforeach
+        </div>
+    @endforeach
+
+    {{-- Skip history: collapsed by default --}}
+    <details class="card overflow-hidden" wire:key="skip-history">
+        <summary class="flex min-h-14 cursor-pointer items-center gap-2 px-4 font-semibold">
+            Skip history
+            <span class="inline-flex h-6 min-w-6 items-center justify-center rounded-lg bg-hover px-2 font-semibold text-text2">{{ $skips->flatten()->count() }}</span>
+        </summary>
+        @if ($skips->isEmpty())
+            <x-joy>No skips yet.</x-joy>
+        @endif
+        @foreach ($skips as $day => $items)
+            <div class="border-t border-border bg-hover px-4 py-2 font-semibold text-text2">{{ $day }}</div>
+            @foreach ($items as $skip)
+                <div wire:key="skip-{{ $skip->id }}" class="flex flex-wrap items-center gap-2 border-t border-border px-4 py-2">
+                    <span class="min-w-0 flex-1 truncate">{{ $skip->project?->name }}</span>
+                    @if ($skip->was_high)<span class="tag-gray">Was priority</span>@endif
+                    <span class="text-text2">{{ $skip->user?->name }}</span>
                 </div>
-            </a>
+            @endforeach
         @endforeach
-    </div>
+    </details>
 
     @if ($showNew)
         <x-modal title="New {{ strtolower($kindLabel) }}" close="closeNew">

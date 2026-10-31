@@ -4,7 +4,6 @@ use App\Livewire\Archived;
 use App\Livewire\Auth\Login;
 use App\Livewire\Clients\Index as ClientsIndex;
 use App\Livewire\Clients\Show as ClientShow;
-use App\Livewire\Daily;
 use App\Livewire\Projects\Index as ProjectsIndex;
 use App\Livewire\Projects\Show as ProjectShow;
 use App\Livewire\Tasks;
@@ -18,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/login', Login::class)->middleware('guest')->name('login');
 
 Route::middleware(['auth', 'active'])->group(function () {
-    // Team members land on Daily; client-portal users go straight to their project.
+    // Team members land on Projects; client-portal users go straight to their project.
     Route::get('/', function (Request $request) {
         $user = $request->user();
 
@@ -30,14 +29,13 @@ Route::middleware(['auth', 'active'])->group(function () {
             return redirect()->route('projects.show', $project);
         }
 
-        return redirect()->route('daily');
+        return redirect()->route('projects.index');
     });
 
     // Item access is enforced by ProjectPolicy inside the component.
     Route::get('/projects/{project}', ProjectShow::class)->name('projects.show');
 
     Route::middleware('can:staff')->group(function () {
-        Route::get('/daily', Daily::class)->name('daily');
         Route::get('/today', Today::class)->name('today');
         Route::get('/projects', ProjectsIndex::class)->name('projects.index')->defaults('kind', 'project');
         Route::get('/products', ProjectsIndex::class)->name('products.index')->defaults('kind', 'product');

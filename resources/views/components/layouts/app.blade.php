@@ -2,7 +2,6 @@
     $me = auth()->user();
     // Client-portal users get no navigation, only the project shared with them.
     $tabs = $me->isStaff() ? array_filter([
-        'daily' => ['Daily', 'cal', route('daily')],
         'today' => ['Today', 'inbox', route('today')],
         'projects' => ['Projects', 'grid', route('projects.index')],
         'products' => ['Products', 'package-check', route('products.index')],
@@ -18,7 +17,7 @@
     $moreTabs = array_diff_key($tabs, array_flip($primaryKeys)) + $extra;
     $active ??= '';
     $initial = strtoupper(mb_substr($me->email, 0, 1));
-    $homeUrl = $me->isStaff() ? route('daily') : url('/');
+    $homeUrl = $me->isStaff() ? route('projects.index') : url('/');
 @endphp
 <x-layouts.base :title="$title ?? 'Pulse'">
 <div class="min-h-screen bg-bg text-text">

@@ -5,9 +5,8 @@ namespace App\Services;
 use App\Models\Client;
 use App\Models\DailySkip;
 use App\Models\Project;
-use App\Models\TimelineEntry;
 
-/** Builds the morning message: who to follow up with, and which priorities still need an update. */
+/** Builds the morning message (follow-ups and today's priority) and the evening prompt to set tomorrow's. */
 class ReminderDigest
 {
     /** Null when there is nothing to say. */
@@ -17,10 +16,7 @@ class ReminderDigest
         $today = $due->filter(fn (Client $c) => ! $c->isOverdue());
         $overdue = $due->filter(fn (Client $c) => $c->isOverdue());
 
-        $checked = TimelineEntry::where('created_at', '>=', today())->select('project_id');
-        $skipped = DailySkip::whereDate('skipped_on', today()->toDateString())->whereNotNull('project_id')->select('project_id');
-        $priority = Project::active()->priorityOn(today())
-            ->whereNotIn('id', $checked)->whereNotIn('id', $skipped)->orderBy('name')->get();
+        $priority = $this->priorities();
 
         if ($today->isEmpty() && $overdue->isEmpty() && $priority->isEmpty()) {
             return null;
@@ -48,11 +44,40 @@ class ReminderDigest
 
         if ($priority->isNotEmpty()) {
             $lines[] = '';
-            $lines[] = '<b>Priority today, no update yet ('.$priority->count().')</b>';
+            $lines[] = '<b>Priority today ('.$priority->count().')</b>';
             foreach ($priority as $project) {
                 $lines[] = '• <a href="'.e(route('projects.show', $project)).'">'.e($project->name).'</a>';
             }
         }
+
+        return implode("\n", $lines);
+    }
+
+    /** Pinned projects that were not skipped today. */
+    protected function priorities()
+    {
+        $skipped = DailySkip::whereDate('skipped_on', today()->toDateString())->whereNotNull('project_id')->select('project_id');
+
+        return Project::active()->where('is_pinned', true)->whereNotIn('id', $skipped)->orderBy('name')->get();
+    }
+
+    /** The evening prompt. Priorities carry over, so it also says what tomorrow looks like if nothing changes. */
+    public function planTomorrow(): string
+    {
+        $priority = $this->priorities();
+        $lines = ['<b>Pulse · plan tomorrow</b>', '', 'Set tomorrow\'s priority: pin the projects and products you will work on.'];
+
+        if ($priority->isEmpty()) {
+            $lines[] = 'Nothing is pinned right now.';
+        } else {
+            $lines[] = 'If you change nothing, these stay as priority:';
+            foreach ($priority as $project) {
+                $lines[] = '• <a href="'.e(route('projects.show', $project)).'">'.e($project->name).'</a>';
+            }
+        }
+
+        $lines[] = '';
+        $lines[] = '<a href="'.e(route('projects.index')).'">Open Pulse</a>';
 
         return implode("\n", $lines);
     }

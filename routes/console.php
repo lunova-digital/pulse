@@ -14,4 +14,9 @@ Schedule::command('pulse:telegram-digest')
     ->timezone(config('app.timezone'))
     ->withoutOverlapping();
 
+Schedule::command('pulse:telegram-plan')
+    ->dailyAt(config('pulse.plan_time'))
+    ->timezone(config('app.timezone'))
+    ->withoutOverlapping();
+
 Schedule::command('pulse:telegram-due')->everyFifteenMinutes()->withoutOverlapping();

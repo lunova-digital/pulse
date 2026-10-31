@@ -14,7 +14,7 @@
                 <div class="text-text2">{{ $project->client_name }}</div>
             </div>
             @if ($canEdit && ! $archived)
-                <button type="button" wire:click="togglePin" title="{{ $project->is_pinned ? 'Unpin' : 'Pin' }}"
+                <button type="button" wire:click="togglePin" title="{{ $project->is_pinned ? 'Remove from priority' : 'Make priority' }}"
                     @class(['inline-flex size-11 items-center justify-center rounded-lg border transition-all',
                         'border-accent bg-accent-t text-accent-fg' => $project->is_pinned, 'border-border bg-transparent text-text2' => ! $project->is_pinned])>
                     <x-icon name="pin" />

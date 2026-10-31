@@ -46,17 +46,15 @@ class SampleTeamSeeder extends Seeder
             'name' => 'Former Member', 'password' => 'password', 'role' => Role::Member, 'is_active' => false,
         ]);
 
-        // Today's priority (two unchecked, one already updated) and tomorrow's.
-        $projects->get(5)?->pinForDate(today());
-        $projects->get(6)?->pinForDate(today());
-        $projects->get(7)?->pinForDate(today());
-        $projects->get(7)?->postEntry(\App\Enums\EntryType::Note, 'Checked in', 'Update posted today, so this one shows as done.');
-        $projects->get(4)?->pinForDate(today()->addDay());
+        // Priority: three pinned projects (a pin carries over day to day until changed).
+        foreach ([5, 6, 7] as $i) {
+            $projects->get($i)?->forceFill(['is_pinned' => true])->save();
+        }
 
         // A high priority task.
         Task::whereNull('completed_at')->orderBy('id')->first()?->update(['is_high' => true, 'user_id' => $owner?->id]);
 
-        // Skip history across recent days, including a high priority skip.
+        // Skip history across recent days (index 5 was a priority then).
         foreach ([[1, 4, false], [1, 5, true], [2, 4, false], [3, 6, false]] as [$daysAgo, $index, $high]) {
             $project = $projects->get($index);
             if (! $project) {

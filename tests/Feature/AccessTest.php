@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\Daily;
 use App\Livewire\Projects\Index;
 use App\Livewire\Projects\Show;
 use App\Livewire\Tasks;
@@ -52,7 +51,6 @@ class AccessTest extends TestCase
         Task::factory()->create(['title' => 'Visible task', 'project_id' => $this->shared->id]);
 
         Livewire::test(Index::class, ['kind' => 'project'])->assertSee('Shared one')->assertDontSee('Hidden one');
-        Livewire::test(Daily::class)->assertSee('Shared one')->assertDontSee('Hidden one');
         Livewire::test(Today::class)->assertDontSee('Hidden one');
         Livewire::test(Tasks::class)->assertSee('Visible task')->assertDontSee('Secret task');
 
@@ -65,8 +63,7 @@ class AccessTest extends TestCase
         $this->actingAs($this->member());
 
         $attempts = [
-            fn () => Livewire::test(Daily::class)->call('skip', 'project', $this->hidden->id),
-            fn () => Livewire::test(Daily::class)->call('setPriority', $this->hidden->id, 'today'),
+            fn () => Livewire::test(Index::class, ['kind' => 'project'])->call('togglePin', $this->hidden->id),
             fn () => Livewire::test(Today::class)->call('nudge', $this->hidden->id),
         ];
 
@@ -75,7 +72,7 @@ class AccessTest extends TestCase
         }
 
         $this->assertSame(0, \App\Models\DailySkip::count());
-        $this->assertNull($this->hidden->fresh()->priority_for);
+        $this->assertFalse($this->hidden->fresh()->is_pinned);
     }
 
     public function test_creator_of_a_project_is_assigned_to_it(): void
@@ -103,7 +100,7 @@ class AccessTest extends TestCase
         $page = $this->get("/projects/{$this->shared->id}")->assertOk();
         $page->assertSee('Public status')->assertDontSee('Budget worry')->assertDontSee('Add update')->assertDontSee('Archive project');
 
-        foreach (['/daily', '/today', '/projects', '/products', '/tasks', '/archived', '/clients', '/team'] as $url) {
+        foreach (['/today', '/projects', '/products', '/tasks', '/archived', '/clients', '/team'] as $url) {
             $this->get($url)->assertForbidden();
         }
 

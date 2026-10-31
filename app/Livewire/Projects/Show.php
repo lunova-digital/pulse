@@ -55,8 +55,8 @@ class Show extends Component
     public function togglePin(): void
     {
         $this->ensureEditable();
-        $this->project->update(['is_pinned' => ! $this->project->is_pinned]);
-        $this->toast($this->project->is_pinned ? 'Pinned to top' : 'Unpinned');
+        $this->project->togglePriority();
+        $this->toast($this->project->is_pinned ? 'Priority' : 'Priority removed');
     }
 
     public function changeMove(string $move): void

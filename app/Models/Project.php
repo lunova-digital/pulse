@@ -7,7 +7,6 @@ use App\Enums\MilestoneState;
 use App\Enums\ProjectKind;
 use App\Enums\RoadmapTemplate;
 use App\Enums\WhoseMove;
-use App\Exceptions\HighPrioritySkipNotConfirmed;
 use App\Exceptions\ProjectCannotBeDeleted;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -32,7 +31,6 @@ class Project extends Model
     {
         return [
             'kind' => ProjectKind::class,
-            'priority_for' => 'date:Y-m-d',
             'whose_move' => WhoseMove::class,
             'whose_move_since' => 'datetime',
             'next_meeting_at' => 'datetime',
@@ -158,11 +156,6 @@ class Project extends Model
         $query->where('kind', $kind);
     }
 
-    public function scopePriorityOn(Builder $query, CarbonInterface $day): void
-    {
-        $query->whereDate('priority_for', $day->toDateString());
-    }
-
     /** No activity for 5+ calendar days. */
     public function scopeStale(Builder $query): void
     {
@@ -276,32 +269,16 @@ class Project extends Model
         return $this->recordEntry($type, $statusLabel, $note, $whoseMove, $internal);
     }
 
-    // Daily check-in ----------------------------------------------------
+    // Daily priority ----------------------------------------------------
 
-    public function isPriorityToday(): bool
-    {
-        return $this->priority_for?->isSameDay(today()) ?? false;
-    }
-
-    /** Pin as the priority for a day (today or tomorrow); null clears it. Not a timeline event. */
-    public function pinForDate(?CarbonInterface $day): void
+    /** Pinned = today's priority. The pin stays until it is changed, so yesterday's priority carries over. */
+    public function togglePriority(): void
     {
         if ($this->isArchived()) {
             throw new InvalidArgumentException('Archived projects cannot be a priority.');
         }
 
-        $this->forceFill(['priority_for' => $day?->toDateString()])->save();
-    }
-
-    /** Checked in = an update was posted today, or it was skipped today. */
-    public function isCheckedInToday(): bool
-    {
-        return $this->hasUpdateToday() || $this->isSkippedToday();
-    }
-
-    public function hasUpdateToday(): bool
-    {
-        return $this->entries()->where('created_at', '>=', today())->exists();
+        $this->forceFill(['is_pinned' => ! $this->is_pinned])->save();
     }
 
     public function isSkippedToday(): bool
@@ -309,22 +286,16 @@ class Project extends Model
         return $this->skips()->whereDate('skipped_on', today()->toDateString())->exists();
     }
 
-    /** The daily check-in for an item with nothing to report. High priority needs a second confirmation. */
-    public function skipToday(User $user, bool $confirmedHigh = false): DailySkip
+    /** Hide the project for today: nothing to work on, logged silently (not a timeline event). */
+    public function skipToday(User $user): DailySkip
     {
         if ($this->isArchived()) {
-            throw new InvalidArgumentException('Archived projects are not part of the daily check-in.');
-        }
-
-        $high = $this->isPriorityToday();
-
-        if ($high && ! $confirmedHigh) {
-            throw new HighPrioritySkipNotConfirmed;
+            throw new InvalidArgumentException('Archived projects cannot be skipped.');
         }
 
         return DailySkip::firstOrCreate(
             ['project_id' => $this->id, 'skipped_on' => today()->toDateString()],
-            ['user_id' => $user->id, 'was_high' => $high],
+            ['user_id' => $user->id, 'was_high' => $this->is_pinned],
         );
     }
 

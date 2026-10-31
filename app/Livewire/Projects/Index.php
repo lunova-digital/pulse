@@ -6,7 +6,9 @@ use App\Enums\ProjectKind;
 use App\Enums\RoadmapTemplate;
 use App\Enums\WhoseMove;
 use App\Livewire\Concerns\RefreshesOnEntry;
+use App\Models\DailySkip;
 use App\Models\Project;
+use App\Support\Fmt;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
@@ -26,6 +28,11 @@ class Index extends Component
     #[Url(as: 'filter')]
     public string $filter = 'all';
 
+    /** @var list<int> project ids ticked for a bulk skip */
+    public array $selected = [];
+
+    public bool $selecting = false;
+
     public bool $showNew = false;
 
     public string $name = '';
@@ -43,6 +50,47 @@ class Index extends Component
     public function mount(string $kind = 'project'): void
     {
         $this->kind = ProjectKind::from($kind)->value;
+    }
+
+    protected function editable(int $id): Project
+    {
+        $project = Project::active()->ofKind(ProjectKind::from($this->kind))->visibleTo(auth()->user())->findOrFail($id);
+
+        $this->authorize('update', $project);
+
+        return $project;
+    }
+
+    /** Pin = today's priority. It stays pinned the next day unless changed. */
+    public function togglePin(int $id): void
+    {
+        $project = $this->editable($id);
+        $project->togglePriority();
+        $this->selected = array_values(array_diff($this->selected, [$id]));
+        $this->dispatch('toast', message: $project->is_pinned ? 'Priority' : 'Priority removed');
+    }
+
+    public function toggleSelecting(): void
+    {
+        $this->selecting = ! $this->selecting;
+        $this->selected = [];
+    }
+
+    /** Skip for today: not working on these now. Priority (pinned) projects are never skipped in bulk. */
+    public function skipSelected(): void
+    {
+        $projects = Project::active()->ofKind(ProjectKind::from($this->kind))->visibleTo(auth()->user())
+            ->where('is_pinned', false)
+            ->whereIn('id', array_map('intval', $this->selected))->get();
+
+        foreach ($projects as $project) {
+            $this->authorize('update', $project);
+            $project->skipToday(auth()->user());
+        }
+
+        $this->selected = [];
+        $this->selecting = false;
+        $this->dispatch('toast', message: $projects->count() === 1 ? 'Skipped 1 for today' : "Skipped {$projects->count()} for today");
     }
 
     public function openNew(): void
@@ -88,8 +136,11 @@ class Index extends Component
 
         $kind = ProjectKind::from($this->kind);
 
+        $skippedIds = DailySkip::whereDate('skipped_on', today()->toDateString())->whereNotNull('project_id')->select('project_id');
+
         $projects = Project::active()
             ->ofKind($kind)
+            ->whereNotIn('id', $skippedIds)
             ->visibleTo(auth()->user())
             ->with('latestEntry')
             ->when(in_array($this->filter, ['us', 'client', 'none'], true), fn ($q) => $q->where('whose_move', $this->filter))
@@ -100,7 +151,14 @@ class Index extends Component
             ->orderByDesc('last_activity_at')
             ->get();
 
-        return view('livewire.projects.index', ['projects' => $projects, 'kindLabel' => $kind->label(), 'kindPlural' => $kind->plural()])
+        $visible = Project::active()->ofKind($kind)->visibleTo(auth()->user())->select('projects.id');
+
+        $skips = DailySkip::with(['project:id,name', 'user:id,name'])
+            ->whereIn('project_id', $visible)
+            ->orderByDesc('skipped_on')->orderByDesc('id')->limit(100)->get()
+            ->groupBy(fn (DailySkip $s) => Fmt::dayGroup($s->skipped_on));
+
+        return view('livewire.projects.index', ['projects' => $projects, 'skips' => $skips, 'kindLabel' => $kind->label(), 'kindPlural' => $kind->plural()])
             ->layoutData(['active' => $kind->plural() === 'Products' ? 'products' : 'projects', 'title' => $kind->plural()]);
     }
 }

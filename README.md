@@ -1,6 +1,6 @@
 # Pulse
 
-A small-team project-status tracker with a daily check-in, a client follow-up funnel and Telegram reminders. Laravel + Livewire 3 + Tailwind 4, SQLite by default.
+A small-team project-status tracker with a daily priority list, a client follow-up funnel and Telegram reminders. Laravel + Livewire 3 + Tailwind 4, SQLite by default.
 
 ## Setup
 
@@ -51,8 +51,8 @@ Create the database, run `php artisan migrate --force` and `php artisan db:seed 
 
 ## Tabs
 
-- **Daily**: every active project and product is checked in each day by posting an update, or skipped (the skip is the check-in). Items pinned as *priority for today* (and tasks flagged High, or due) need an update; skipping them takes two confirmations and cannot be done in bulk. Other items can be skipped one by one or in bulk. Skips are listed in a collapsed *Skip history*. Use the calendar button on a row to make it tomorrow's priority.
-- **Today**, **Projects**, **Products**, **Tasks**, **Archived**: projects and products are the same thing with a different kind.
+- **Projects** and **Products** (same thing, different kind): the pin button makes an item *today's priority*. Priority items are listed first and stay pinned from day to day until you change them, so if you set nothing the previous priority carries over. Press **Select**, tick the ones you are not working on today and **Skip for today**: they disappear until tomorrow and are listed in a collapsed *Skip history*. Priority items cannot be skipped in bulk (unpin them first).
+- **Today**, **Tasks**, **Archived**: what needs attention now, loose to-dos, and finished work.
 - **Clients**: a funnel with editable stages. Every logged conversation needs a next follow-up date (or "no follow-up needed"). *Start project* creates a project under the client's name and moves them to the won stage.
 - **Team** (owner only): add team members and client-portal users and pick exactly which projects and products each can open.
 
@@ -69,10 +69,10 @@ Deactivated users cannot sign in; their history is kept.
 ## Telegram reminders
 
 1. Create a bot with @BotFather, add it to the team group, and get the group's chat id.
-2. Set `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (and optionally `PULSE_DIGEST_TIME`, default 09:00 in `APP_TIMEZONE`).
+2. Set `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (and optionally `PULSE_DIGEST_TIME`, default 09:00, and `PULSE_PLAN_TIME`, default 22:00, both in `APP_TIMEZONE`).
 3. The scheduler must run: locally `php artisan schedule:work`; in production something must run `php artisan schedule:run` every minute (the Lunova manifest sets `scheduler: true`).
 
-`pulse:telegram-digest` posts the morning message (follow-ups due today, overdue ones, priorities without an update). `pulse:telegram-due` pings when a follow-up with a set time arrives, once per time. Nothing is sent while the bot is not configured.
+`pulse:telegram-digest` posts the morning message (follow-ups due today, overdue ones, today's priority). `pulse:telegram-plan` posts the evening reminder (default 22:00) to set tomorrow's priority, listing what stays priority if nothing changes. `pulse:telegram-due` pings when a follow-up with a set time arrives, once per time. Nothing is sent while the bot is not configured.
 
 ## Rules baked in
 
