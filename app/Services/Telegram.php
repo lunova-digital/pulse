@@ -20,6 +20,17 @@ class Telegram
         return filled(config('services.telegram.bot_token')) && filled(config('services.telegram.owner_chat_id'));
     }
 
+    /** Reminders for the owner go to their personal chat when set, else to the group. */
+    public function ownerReachable(): bool
+    {
+        return $this->personalConfigured() || $this->configured();
+    }
+
+    public function sendToOwner(string $html): bool
+    {
+        return $this->send($html, $this->personalConfigured() ? config('services.telegram.owner_chat_id') : null);
+    }
+
     /**
      * @param string $html Telegram HTML (escape user text with e()).
      * @param string|null $chatId Defaults to the team group.

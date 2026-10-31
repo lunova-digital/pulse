@@ -166,10 +166,25 @@ class TelegramTest extends TestCase
         Http::assertSent(fn (Request $r) => $r['chat_id'] === '555' && str_contains($r['text'], 'plan tomorrow'));
     }
 
-    public function test_other_reminders_still_go_to_the_group(): void
+    public function test_untouched_reminder_goes_to_the_personal_chat_too_and_the_digest_stays_in_the_group(): void
     {
         $this->configure();
         config(['services.telegram.owner_chat_id' => '555']);
+        Http::fake(['api.telegram.org/*' => Http::response(['ok' => true])]);
+        Project::factory()->create();
+
+        $this->artisan('pulse:telegram-untouched')->assertSuccessful();
+        Http::assertSent(fn (Request $r) => $r['chat_id'] === '555' && str_contains($r['text'], 'not touched'));
+
+        Project::factory()->create(['is_pinned' => true]);
+        $this->artisan('pulse:telegram-digest')->assertSuccessful();
+        Http::assertSent(fn (Request $r) => $r['chat_id'] === '-100123');
+    }
+
+    public function test_owner_reminders_fall_back_to_the_group_without_a_personal_chat(): void
+    {
+        $this->configure();
+        config(['services.telegram.owner_chat_id' => null]);
         Http::fake(['api.telegram.org/*' => Http::response(['ok' => true])]);
         Project::factory()->create();
 

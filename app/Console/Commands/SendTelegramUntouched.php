@@ -9,12 +9,12 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
 #[Signature('pulse:telegram-untouched')]
-#[Description('Remind the Telegram group about projects with no update or skip today')]
+#[Description('Remind the owner (personal chat, or the group as a fallback) about projects with no update or skip today')]
 class SendTelegramUntouched extends Command
 {
     public function handle(Telegram $telegram, ReminderDigest $digest): int
     {
-        if (! $telegram->configured()) {
+        if (! $telegram->ownerReachable()) {
             $this->warn('Telegram is not configured (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID).');
 
             return self::SUCCESS;
@@ -28,7 +28,7 @@ class SendTelegramUntouched extends Command
             return self::SUCCESS;
         }
 
-        if (! $telegram->send($message)) {
+        if (! $telegram->sendToOwner($message)) {
             $this->error('Telegram rejected the message.');
 
             return self::FAILURE;

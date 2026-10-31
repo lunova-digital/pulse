@@ -14,16 +14,13 @@ class SendTelegramPlan extends Command
 {
     public function handle(Telegram $telegram, ReminderDigest $digest): int
     {
-        // The priority is the owner's job: send it to their personal chat when set, else to the group.
-        $personal = $telegram->personalConfigured();
-
-        if (! $personal && ! $telegram->configured()) {
+        if (! $telegram->ownerReachable()) {
             $this->warn('Telegram is not configured (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID).');
 
             return self::SUCCESS;
         }
 
-        if (! $telegram->send($digest->planTomorrow(), $personal ? config('services.telegram.owner_chat_id') : null)) {
+        if (! $telegram->sendToOwner($digest->planTomorrow())) {
             $this->error('Telegram rejected the message.');
 
             return self::FAILURE;
