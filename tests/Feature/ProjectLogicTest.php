@@ -221,11 +221,23 @@ class ProjectLogicTest extends TestCase
 
         $this->seed();
 
-        $this->assertSame(8, Project::active()->count());
+        // 8 sample + 1 project started from the converted demo client.
+        $this->assertSame(9, Project::active()->count());
         $this->assertSame(2, Project::archived()->count());
-        Project::withCount('entries')->get()->each(
+        Project::whereNull('client_id')->withCount('entries')->get()->each(
             fn ($p) => $this->assertTrue($p->entries_count >= 4 && $p->entries_count <= 8),
         );
         $this->assertDatabaseHas('users', ['email' => 'a@b.test']);
+
+        // Demo data for the daily check-in, clients and team features.
+        $this->assertGreaterThanOrEqual(2, Project::where('kind', 'product')->count());
+        $this->assertGreaterThanOrEqual(2, Project::priorityOn(today())->count());
+        $this->assertGreaterThanOrEqual(1, \App\Models\DailySkip::where('was_high', true)->count());
+        $this->assertGreaterThanOrEqual(1, \App\Models\Task::where('is_high', true)->count());
+        $this->assertSame(1, \App\Models\Client::whereHas('projects')->count());
+        foreach (['member', 'sales', 'client', 'former'] as $who) {
+            $this->assertDatabaseHas('users', ['email' => "{$who}@pulse.test"]);
+        }
+        $this->assertFalse(\App\Models\User::where('email', 'former@pulse.test')->value('is_active'));
     }
 }

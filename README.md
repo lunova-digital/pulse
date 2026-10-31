@@ -29,7 +29,7 @@ php artisan serve
 php artisan test
 ```
 
-`php artisan db:seed` runs both seeders. Re-running `UserSeeder` after editing `.env` updates the password.
+`php artisan db:seed` runs every seeder: owner, sample projects/products/tasks, sample clients, and demo people (`member@pulse.test`, `sales@pulse.test` with Clients access, `client@pulse.test` read-only portal user, deactivated `former@pulse.test`; all with password `password`) plus priorities, skip history and a converted client. Never run it in production, where only `UserSeeder` runs. Re-running `UserSeeder` after editing `.env` updates the password.
 There is no public registration: the owner adds people on the **Team** screen. Set `APP_TIMEZONE` (e.g. `Asia/Dhaka`) so "today", stale and meeting
 windows follow your day.
 
