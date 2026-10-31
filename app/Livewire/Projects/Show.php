@@ -69,6 +69,7 @@ class Show extends Component
     public function changeMove(string $move): void
     {
         $this->ensureEditable();
+        abort_unless($this->project->tracksWhoseMove(), 403, 'Products have no client to wait on.');
 
         if ($this->project->changeWhoseMove(WhoseMove::from($move))) {
             $this->form->move = $move;

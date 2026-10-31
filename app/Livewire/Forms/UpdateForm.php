@@ -45,8 +45,14 @@ class UpdateForm extends Form
     {
         $this->reset();
         $this->projectId = $project?->id;
-        $this->move = ($project?->whose_move ?? WhoseMove::Us)->value;
+        $this->move = $project && ! $project->tracksWhoseMove() ? WhoseMove::None->value : ($project?->whose_move ?? WhoseMove::Us)->value;
         $this->fill(array_intersect_key($preset, array_flip(['type', 'label', 'note', 'move'])));
+    }
+
+    /** Products have no client to wait on, so the whose-move choice is hidden for them. */
+    public function isProduct(): bool
+    {
+        return $this->projectId && Project::whereKey($this->projectId)->where('kind', 'product')->exists();
     }
 
     public function canPost(): bool
@@ -69,7 +75,7 @@ class UpdateForm extends Form
             $type,
             trim($this->label) !== '' ? $this->label : $type->label(),
             $this->note,
-            WhoseMove::from($this->move),
+            $project->tracksWhoseMove() ? WhoseMove::from($this->move) : WhoseMove::None,
             $this->internal,
         );
 

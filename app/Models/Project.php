@@ -44,6 +44,9 @@ class Project extends Model
     {
         static::creating(function (Project $project) {
             $project->kind ??= ProjectKind::Project;
+            if ($project->kind === ProjectKind::Product) {
+                $project->whose_move = WhoseMove::None;
+            }
             $project->whose_move_since ??= now();
             $project->last_activity_at ??= now();
         });
@@ -170,14 +173,20 @@ class Project extends Model
         $query->where('last_activity_at', '<', now()->startOfDay()->subDays(self::STALE_AFTER_DAYS - 1));
     }
 
+    /** Whose move only makes sense for client projects; products we build have nobody to wait on. */
+    public function tracksWhoseMove(): bool
+    {
+        return $this->kind !== ProjectKind::Product;
+    }
+
     public function scopeWaitingOnUs(Builder $query): void
     {
-        $query->where('whose_move', WhoseMove::Us);
+        $query->where('kind', ProjectKind::Project)->where('whose_move', WhoseMove::Us);
     }
 
     public function scopeWaitingOnClient(Builder $query): void
     {
-        $query->where('whose_move', WhoseMove::Client);
+        $query->where('kind', ProjectKind::Project)->where('whose_move', WhoseMove::Client);
     }
 
     /** Meeting today or within the next 3 days. */

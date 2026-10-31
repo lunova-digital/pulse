@@ -188,4 +188,40 @@ class PriorityTest extends TestCase
         \Livewire\Livewire::test(\App\Livewire\Projects\Show::class, ['project' => $project])->call('skipToday');
         $this->assertSame(1, DailySkip::where('project_id', $project->id)->count());
     }
+
+    public function test_products_have_no_whose_move_but_client_projects_do(): void
+    {
+        $project = Project::factory()->create(['name' => 'Client site', 'whose_move' => \App\Enums\WhoseMove::Us]);
+        $product = Project::factory()->create(['name' => 'Our saas', 'kind' => 'product', 'whose_move' => \App\Enums\WhoseMove::Us]);
+
+        $this->assertSame(\App\Enums\WhoseMove::None, $product->fresh()->whose_move);
+        $this->assertTrue($project->tracksWhoseMove());
+        $this->assertFalse($product->tracksWhoseMove());
+
+        // Waiting lists and filters only ever contain client projects.
+        $this->assertSame([$project->id], Project::waitingOnUs()->pluck('id')->all());
+        Livewire::test(Index::class)->set('filter', 'us')->assertSee('Client site')->assertDontSee('Our saas');
+
+        // No waiting-on chips when looking at products only; no pill on the card.
+        Livewire::test(Index::class)->set('type', 'product')->assertDontSee('Waiting on us')->assertSee('Our saas');
+        Livewire::test(Index::class)->assertSee('Waiting on us');
+        $this->get("/projects/{$product->id}")->assertOk()->assertDontSee('Change whose move');
+        $this->get("/projects/{$project->id}")->assertOk()->assertSee('Change whose move');
+    }
+
+    public function test_creating_a_product_stores_no_whose_move_and_updates_cannot_set_one(): void
+    {
+        Livewire::test(Index::class)->set('type', 'product')->call('openNew')
+            ->assertDontSee('Whose move?')->set('name', 'Ledger')->set('move', 'client')->call('create');
+
+        $product = Project::where('name', 'Ledger')->first();
+        $this->assertSame(\App\Enums\WhoseMove::None, $product->whose_move);
+
+        $product->postEntry(\App\Enums\EntryType::Note, 'Shipped', null, \App\Enums\WhoseMove::None);
+        Livewire::test(\App\Livewire\Projects\Show::class, ['project' => $product])
+            ->set('form.projectId', $product->id)->set('form.label', 'Update')->set('form.move', 'client')->call('postUpdate');
+        $this->assertSame(\App\Enums\WhoseMove::None, $product->fresh()->whose_move);
+
+        Livewire::test(\App\Livewire\Projects\Show::class, ['project' => $product])->call('changeMove', 'client')->assertForbidden();
+    }
 }

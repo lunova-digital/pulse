@@ -128,7 +128,7 @@ class Index extends Component
             'name' => trim($data['name']),
             'client_name' => filled($data['client']) ? trim($data['client']) : null,
             'description' => filled($data['description']) ? trim($data['description']) : null,
-            'whose_move' => WhoseMove::from($data['move']),
+            'whose_move' => $data['kind'] === ProjectKind::Product->value ? WhoseMove::None : WhoseMove::from($data['move']),
             'next_meeting_at' => filled($data['meeting']) ? $data['meeting'] : null,
             'kind' => ProjectKind::from($data['kind']),
         ], RoadmapTemplate::from($data['template']), auth()->user());
@@ -149,7 +149,8 @@ class Index extends Component
             ->whereNotIn('id', $skippedIds)
             ->visibleTo(auth()->user())
             ->with('latestEntry')
-            ->when(in_array($this->filter, ['us', 'client', 'none'], true), fn ($q) => $q->where('whose_move', $this->filter))
+            ->when($this->type !== 'product' && in_array($this->filter, ['us', 'client', 'none'], true),
+                fn ($q) => $q->where('kind', ProjectKind::Project)->where('whose_move', $this->filter))
             ->when($term !== '', fn ($q) => $q->where(fn ($q) => $q
                 ->where('name', 'like', "%{$term}%")
                 ->orWhere('client_name', 'like', "%{$term}%")))

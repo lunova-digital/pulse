@@ -23,6 +23,7 @@
     <span class="font-semibold">Note</span>
     <textarea wire:model="form.note" rows="{{ $rows }}" placeholder="What happened, and what's next?" class="textarea {{ $rows > 3 ? 'min-h-28' : 'min-h-24' }}"></textarea>
 </label>
+@unless ($form->isProduct())
 <div class="flex flex-col gap-2">
     <div class="font-semibold">Whose move?</div>
     <div class="flex flex-wrap gap-2">
@@ -33,6 +34,7 @@
         @endforeach
     </div>
 </div>
+@endunless
 <label class="flex items-center gap-2 text-text2">
     <input type="checkbox" wire:model="form.internal" class="size-4 accent-accent">
     <span>Internal only (hidden from client-portal users)</span>

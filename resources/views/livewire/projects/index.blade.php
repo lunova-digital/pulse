@@ -17,11 +17,13 @@
                 <button type="button" wire:click="$set('type', '{{ $key }}')" @class(['chip', 'chip-on' => $type === $key, 'chip-off' => $type !== $key])>{{ $label }}</button>
             @endforeach
         </div>
+        @if ($type !== 'product')
         <div class="flex flex-wrap gap-2">
             @foreach (['all' => 'All', 'us' => 'Waiting on us', 'client' => 'Waiting on client', 'none' => 'No action'] as $key => $label)
                 <button type="button" wire:click="$set('filter', '{{ $key }}')" @class(['chip', 'chip-on' => $filter === $key, 'chip-off' => $filter !== $key])>{{ $label }}</button>
             @endforeach
         </div>
+        @endif
     </div>
 
     @if ($projects->isEmpty())
@@ -143,6 +145,7 @@
                         </button>
                     @endforeach
                 </div>
+                @if ($kind === 'project')
                 <div class="flex flex-col gap-2">
                     <div class="font-semibold">Whose move?</div>
                     <div class="flex flex-wrap gap-2">
@@ -153,6 +156,7 @@
                         @endforeach
                     </div>
                 </div>
+                @endif
                 <label class="flex flex-col gap-2">
                     <span class="font-semibold">Next meeting (optional)</span>
                     <input type="datetime-local" wire:model="meeting" class="field">

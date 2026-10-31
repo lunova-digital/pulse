@@ -34,6 +34,7 @@
 
         @if ($canEdit && ! $archived)
             <div class="flex flex-wrap items-center gap-4">
+                @if ($project->tracksWhoseMove())
                 <div class="relative" x-data="{ open: false }" x-on:keydown.escape.window="open = false">
                     <button type="button" x-on:click="open = !open" title="Change whose move"
                         class="inline-flex h-11 items-center gap-2 rounded-lg border border-transparent pr-2 pl-4 font-semibold {{ $project->whose_move->pill() }}">
@@ -48,6 +49,7 @@
                         @endforeach
                     </div>
                 </div>
+                @endif
                 <label class="flex flex-wrap items-center gap-2 text-text2">
                     <x-icon name="cal" /><span>Next meeting</span>
                     <input type="datetime-local" wire:model.blur="meeting" class="field w-auto px-2">
