@@ -14,6 +14,13 @@ Schedule::command('pulse:telegram-digest')
     ->timezone(config('app.timezone'))
     ->withoutOverlapping();
 
+// Repeats at these local hours while any project is still untouched; silent once all are cleared.
+Schedule::command('pulse:telegram-untouched')
+    ->hourly()
+    ->timezone(config('app.timezone'))
+    ->when(fn () => in_array((int) now(config('app.timezone'))->format('G'), config('pulse.untouched_hours'), true))
+    ->withoutOverlapping();
+
 Schedule::command('pulse:telegram-plan')
     ->dailyAt(config('pulse.plan_time'))
     ->timezone(config('app.timezone'))

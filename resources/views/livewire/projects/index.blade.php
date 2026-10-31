@@ -23,6 +23,14 @@
         <div class="card"><x-joy>No {{ strtolower($kindPlural) }} match.</x-joy></div>
     @endif
 
+    <div @class(['rounded-lg border px-4 py-2', 'border-border bg-hover text-text2' => $untouched === 0, 'border-accent bg-accent-t text-accent-fg' => $untouched > 0])>
+        @if ($untouched > 0)
+            <b>{{ $untouched }}</b> not touched today. Post an update or skip each one; the bot keeps reminding until they are cleared.
+        @else
+            Everything is touched today.
+        @endif
+    </div>
+
     @if ($selecting)
         <div class="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-hover px-4 py-2">
             <span class="flex-1 text-text2">{{ count($selected) }} selected. Not working on them today? Skip them and they come back tomorrow.</span>
@@ -57,6 +65,14 @@
                         <div class="flex items-center gap-2 text-text2"><x-icon name="cal" /><span>Meet: {{ \App\Support\Fmt::meeting($project->next_meeting_at) }}</span></div>
                     @endif
                     <div class="mt-auto flex flex-wrap items-center gap-2 pt-2 text-text2">
+                        @if ($updatedToday->contains($project->id))
+                            <span class="tag-gray">Updated today</span>
+                        @else
+                            @can('update', $project)
+                                <button type="button" wire:click="skip({{ $project->id }})" title="Nothing to report today"
+                                    class="btn-secondary relative z-10 min-h-9 px-3 py-1">Skip today</button>
+                            @endcan
+                        @endif
                         <span class="flex-1 whitespace-nowrap">Updated {{ \App\Support\Fmt::ago($project->last_activity_at) }}</span>
                         @if ($project->meetingNotLogged())<span class="tag-red">Meeting not logged</span>@endif
                         @if ($project->isStale())<span class="tag-gray">Stale</span>@endif

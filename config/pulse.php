@@ -10,4 +10,7 @@ return [
 
     // Local time of the evening "set tomorrow's priority" reminder, HH:MM.
     'plan_time' => env('PULSE_PLAN_TIME', '22:00'),
+
+    // Local hours (comma separated, 0-23) at which the bot lists projects not touched yet today.
+    'untouched_hours' => array_map('intval', array_filter(explode(',', env('PULSE_UNTOUCHED_HOURS', '11,14,17,20')), 'strlen')),
 ];

@@ -52,6 +52,13 @@ class Show extends Component
         $this->dispatch('toast', message: $message);
     }
 
+    public function skipToday(): void
+    {
+        $this->ensureEditable();
+        $this->project->skipToday(auth()->user());
+        $this->toast('Skipped for today');
+    }
+
     public function togglePin(): void
     {
         $this->ensureEditable();
@@ -232,6 +239,7 @@ class Show extends Component
             'backUrl' => $canEdit ? ($archived ? route('archived') : route($this->project->kind->route())) : null,
             'backLabel' => $archived ? 'Archived' : $this->project->kind->plural(),
             'archiveReason' => $archived ? $this->project->archiveReason() : null,
+            'skips' => $canEdit ? $this->project->skips()->with('user:id,name')->orderByDesc('skipped_on')->limit(60)->get() : collect(),
             'meetingMissed' => $this->project->meetingNotLogged(),
         ])->layoutData([
             'active' => $archived ? 'archived' : ($this->project->kind->value === 'product' ? 'products' : 'projects'),

@@ -117,6 +117,28 @@
         </section>
     @endif
 
+    {{-- Skip history for this item: collapsed by default --}}
+    @if ($canEdit)
+        <details class="card overflow-hidden" wire:key="project-skips">
+            <summary class="flex min-h-14 cursor-pointer items-center gap-2 px-4 font-semibold">
+                Skip history
+                <span class="inline-flex h-6 min-w-6 items-center justify-center rounded-lg bg-hover px-2 font-semibold text-text2">{{ $skips->count() }}</span>
+                @if (! $archived)
+                    <button type="button" wire:click="skipToday" x-on:click.stop class="btn-secondary ml-auto min-h-9 px-3 py-1">Skip today</button>
+                @endif
+            </summary>
+            @forelse ($skips as $skip)
+                <div class="flex flex-wrap items-center gap-2 border-t border-border px-4 py-2">
+                    <span class="flex-1">{{ \App\Support\Fmt::date($skip->skipped_on) }}</span>
+                    @if ($skip->was_high)<span class="tag-gray">Was priority</span>@endif
+                    <span class="text-text2">{{ $skip->user?->name }}</span>
+                </div>
+            @empty
+                <x-joy>Never skipped.</x-joy>
+            @endforelse
+        </details>
+    @endif
+
     {{-- Timeline --}}
     <section class="flex flex-col gap-4">
         <h2 class="h2">Timeline</h2>

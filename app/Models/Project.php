@@ -156,6 +156,14 @@ class Project extends Model
         $query->where('kind', $kind);
     }
 
+    /** Needs a daily check-in: no update posted today and not skipped today. */
+    public function scopeUntouchedToday(Builder $query): void
+    {
+        $query->active()
+            ->whereNotIn('id', TimelineEntry::where('created_at', '>=', today())->select('project_id'))
+            ->whereNotIn('id', DailySkip::whereDate('skipped_on', today()->toDateString())->whereNotNull('project_id')->select('project_id'));
+    }
+
     /** No activity for 5+ calendar days. */
     public function scopeStale(Builder $query): void
     {

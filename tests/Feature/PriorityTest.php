@@ -117,4 +117,45 @@ class PriorityTest extends TestCase
         $this->get('/daily')->assertNotFound();
         $this->get('/')->assertRedirect(route('projects.index'));
     }
+
+    public function test_every_item_is_untouched_until_updated_or_skipped(): void
+    {
+        $updated = Project::factory()->create();
+        $skipped = Project::factory()->create();
+        $idle = Project::factory()->create();
+        Project::factory()->archived()->create();
+
+        $updated->postEntry(\App\Enums\EntryType::Note, 'Did work');
+        $skipped->skipToday($this->user);
+
+        $this->assertSame([$idle->id], Project::untouchedToday()->pluck('id')->all());
+
+        $this->travel(1)->day();
+        $this->assertSame(3, Project::untouchedToday()->count());
+    }
+
+    public function test_single_skip_button_skips_one_item_even_a_priority_one(): void
+    {
+        $plain = Project::factory()->create(['name' => 'Plain']);
+        $priority = Project::factory()->create(['name' => 'Starred', 'is_pinned' => true]);
+
+        Livewire::test(Index::class, ['kind' => 'project'])
+            ->assertSee('2')->assertSee('not touched today')
+            ->call('skip', $plain->id)
+            ->call('skip', $priority->id)
+            ->assertSee('Everything is touched today.');
+
+        $this->assertDatabaseHas('daily_skips', ['project_id' => $priority->id, 'was_high' => true]);
+        $this->assertDatabaseHas('daily_skips', ['project_id' => $plain->id, 'was_high' => false]);
+    }
+
+    public function test_project_page_lists_its_own_skips(): void
+    {
+        $project = Project::factory()->create();
+        $project->skipToday($this->user);
+
+        $this->get("/projects/{$project->id}")->assertOk()->assertSee('Skip history');
+        \Livewire\Livewire::test(\App\Livewire\Projects\Show::class, ['project' => $project])->call('skipToday');
+        $this->assertSame(1, DailySkip::where('project_id', $project->id)->count());
+    }
 }

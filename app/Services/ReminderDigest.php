@@ -53,6 +53,33 @@ class ReminderDigest
         return implode("\n", $lines);
     }
 
+    /** The "not touched yet" nudge. Null once every project has an update or a skip today. */
+    public function untouched(int $show = 25): ?string
+    {
+        $query = Project::untouchedToday();
+        $count = $query->count();
+
+        if ($count === 0) {
+            return null;
+        }
+
+        $projects = $query->orderByDesc('is_pinned')->orderBy('name')->limit($show)->get();
+        $lines = ['<b>Pulse · '.$count.' not touched today</b>', 'Post an update or skip each one for today.', ''];
+
+        foreach ($projects as $project) {
+            $lines[] = '• <a href="'.e(route('projects.show', $project)).'">'.e($project->name).'</a>'.($project->is_pinned ? ' ★' : '');
+        }
+
+        if ($count > $projects->count()) {
+            $lines[] = '…and '.($count - $projects->count()).' more';
+        }
+
+        $lines[] = '';
+        $lines[] = '<a href="'.e(route('projects.index')).'">Open Pulse</a>';
+
+        return implode("\n", $lines);
+    }
+
     /** Pinned projects that were not skipped today. */
     protected function priorities()
     {

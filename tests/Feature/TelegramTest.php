@@ -23,7 +23,7 @@ class TelegramTest extends TestCase
 
     public function test_nothing_is_sent_until_the_bot_is_configured(): void
     {
-        config(['services.telegram.bot_token' => null, 'services.telegram.chat_id' => null]);
+        config(['services.telegram.bot_token' => null, 'services.telegram.chat_id' => null, 'services.telegram.owner_chat_id' => null]);
         Http::fake();
         Client::factory()->followUp(today())->create();
 
@@ -154,12 +154,80 @@ class TelegramTest extends TestCase
         Http::assertSent(fn (Request $r) => str_contains($r['text'], 'Nothing is pinned'));
     }
 
+    public function test_plan_reminder_goes_to_the_personal_chat_and_not_the_group_when_set(): void
+    {
+        $this->configure();
+        config(['services.telegram.owner_chat_id' => '555']);
+        Http::fake(['api.telegram.org/*' => Http::response(['ok' => true])]);
+
+        $this->artisan('pulse:telegram-plan')->assertSuccessful();
+
+        Http::assertSentCount(1);
+        Http::assertSent(fn (Request $r) => $r['chat_id'] === '555' && str_contains($r['text'], 'plan tomorrow'));
+    }
+
+    public function test_other_reminders_still_go_to_the_group(): void
+    {
+        $this->configure();
+        config(['services.telegram.owner_chat_id' => '555']);
+        Http::fake(['api.telegram.org/*' => Http::response(['ok' => true])]);
+        Project::factory()->create();
+
+        $this->artisan('pulse:telegram-untouched')->assertSuccessful();
+
+        Http::assertSent(fn (Request $r) => $r['chat_id'] === '-100123');
+    }
+
     public function test_plan_reminder_is_scheduled_at_ten_pm(): void
     {
         $event = collect(app(Schedule::class)->events())->first(fn ($e) => str_contains($e->command, 'pulse:telegram-plan'));
 
         $this->assertNotNull($event);
         $this->assertSame('0 22 * * *', $event->expression);
+    }
+
+    public function test_untouched_reminder_lists_items_and_goes_quiet_when_cleared(): void
+    {
+        $this->configure();
+        Http::fake(['api.telegram.org/*' => Http::response(['ok' => true])]);
+        $a = Project::factory()->create(['name' => 'Idle A']);
+        $b = Project::factory()->create(['name' => 'Idle B']);
+        $c = Project::factory()->create(['name' => 'Updated C']);
+        $c->postEntry(\App\Enums\EntryType::Note, 'Done');
+
+        $this->artisan('pulse:telegram-untouched')->assertSuccessful();
+
+        Http::assertSentCount(1);
+        Http::assertSent(fn (Request $r) => str_contains($r['text'], '2 not touched today')
+            && str_contains($r['text'], 'Idle A') && str_contains($r['text'], 'Idle B') && ! str_contains($r['text'], 'Updated C'));
+
+        $user = \App\Models\User::factory()->create();
+        $a->skipToday($user);
+        $b->skipToday($user);
+        $this->artisan('pulse:telegram-untouched')->assertSuccessful();
+        Http::assertSentCount(1);
+    }
+
+    public function test_untouched_reminder_caps_a_long_list(): void
+    {
+        $this->configure();
+        Http::fake(['api.telegram.org/*' => Http::response(['ok' => true])]);
+        Project::factory()->count(30)->create();
+
+        $this->artisan('pulse:telegram-untouched')->assertSuccessful();
+
+        Http::assertSent(fn (Request $r) => str_contains($r['text'], '30 not touched today') && str_contains($r['text'], 'and 5 more'));
+    }
+
+    public function test_untouched_reminder_runs_only_at_the_configured_hours(): void
+    {
+        $event = collect(app(Schedule::class)->events())->first(fn ($e) => str_contains($e->command, 'pulse:telegram-untouched'));
+        $this->assertNotNull($event);
+
+        foreach ([11 => true, 14 => true, 20 => true, 9 => false, 22 => false] as $hour => $due) {
+            $this->travelTo(now(config('app.timezone'))->setTime($hour, 0));
+            $this->assertSame($due, $event->filtersPass(app()), "hour {$hour}");
+        }
     }
 
     public function test_both_commands_are_scheduled(): void

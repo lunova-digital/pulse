@@ -8,6 +8,7 @@ use App\Enums\WhoseMove;
 use App\Livewire\Concerns\RefreshesOnEntry;
 use App\Models\DailySkip;
 use App\Models\Project;
+use App\Models\TimelineEntry;
 use App\Support\Fmt;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Locked;
@@ -68,6 +69,14 @@ class Index extends Component
         $project->togglePriority();
         $this->selected = array_values(array_diff($this->selected, [$id]));
         $this->dispatch('toast', message: $project->is_pinned ? 'Priority' : 'Priority removed');
+    }
+
+    /** Nothing to report today: hides the project until tomorrow. Allowed for priority items too. */
+    public function skip(int $id): void
+    {
+        $this->editable($id)->skipToday(auth()->user());
+        $this->selected = array_values(array_diff($this->selected, [$id]));
+        $this->dispatch('toast', message: 'Skipped for today');
     }
 
     public function toggleSelecting(): void
@@ -151,6 +160,9 @@ class Index extends Component
             ->orderByDesc('last_activity_at')
             ->get();
 
+        $updatedToday = TimelineEntry::where('created_at', '>=', today())->distinct()->pluck('project_id');
+        $untouched = $projects->reject(fn (Project $p) => $updatedToday->contains($p->id))->count();
+
         $visible = Project::active()->ofKind($kind)->visibleTo(auth()->user())->select('projects.id');
 
         $skips = DailySkip::with(['project:id,name', 'user:id,name'])
@@ -158,7 +170,7 @@ class Index extends Component
             ->orderByDesc('skipped_on')->orderByDesc('id')->limit(100)->get()
             ->groupBy(fn (DailySkip $s) => Fmt::dayGroup($s->skipped_on));
 
-        return view('livewire.projects.index', ['projects' => $projects, 'skips' => $skips, 'kindLabel' => $kind->label(), 'kindPlural' => $kind->plural()])
+        return view('livewire.projects.index', ['projects' => $projects->sortBy(fn (Project $p) => $updatedToday->contains($p->id) ? 1 : 0)->values(), 'updatedToday' => $updatedToday, 'untouched' => $untouched, 'skips' => $skips, 'kindLabel' => $kind->label(), 'kindPlural' => $kind->plural()])
             ->layoutData(['active' => $kind->plural() === 'Products' ? 'products' : 'projects', 'title' => $kind->plural()]);
     }
 }

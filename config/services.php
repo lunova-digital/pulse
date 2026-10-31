@@ -38,6 +38,8 @@ return [
     'telegram' => [
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
         'chat_id' => env('TELEGRAM_CHAT_ID'),
+        // Your own chat with the bot, for the evening "set tomorrow's priority" message.
+        'owner_chat_id' => env('TELEGRAM_OWNER_CHAT_ID'),
     ],
 
 ];

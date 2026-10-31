@@ -51,7 +51,7 @@ Create the database, run `php artisan migrate --force` and `php artisan db:seed 
 
 ## Tabs
 
-- **Projects** and **Products** (same thing, different kind): the pin button makes an item *today's priority*. Priority items are listed first and stay pinned from day to day until you change them, so if you set nothing the previous priority carries over. Press **Select**, tick the ones you are not working on today and **Skip for today**: they disappear until tomorrow and are listed in a collapsed *Skip history*. Priority items cannot be skipped in bulk (unpin them first).
+- **Projects** and **Products** (same thing, different kind): the pin button makes an item *today's priority*. Priority items are listed first and stay pinned from day to day until you change them, so if you set nothing the previous priority carries over. Every active item must be **touched** each day: post an update, or press **Skip today** on its card (or **Select** several and skip in bulk; priority items are skipped one by one only). A skipped item disappears until tomorrow. Each skip is its own row (who, which item, which day) in a collapsed *Skip history*, on the list and on the item's page. The banner shows how many items are still untouched.
 - **Today**, **Tasks**, **Archived**: what needs attention now, loose to-dos, and finished work.
 - **Clients**: a funnel with editable stages. Every logged conversation needs a next follow-up date (or "no follow-up needed"). *Start project* creates a project under the client's name and moves them to the won stage.
 - **Team** (owner only): add team members and client-portal users and pick exactly which projects and products each can open.
@@ -72,7 +72,7 @@ Deactivated users cannot sign in; their history is kept.
 2. Set `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (and optionally `PULSE_DIGEST_TIME`, default 09:00, and `PULSE_PLAN_TIME`, default 22:00, both in `APP_TIMEZONE`).
 3. The scheduler must run: locally `php artisan schedule:work`; in production something must run `php artisan schedule:run` every minute (the Lunova manifest sets `scheduler: true`).
 
-`pulse:telegram-digest` posts the morning message (follow-ups due today, overdue ones, today's priority). `pulse:telegram-plan` posts the evening reminder (default 22:00) to set tomorrow's priority, listing what stays priority if nothing changes. `pulse:telegram-due` pings when a follow-up with a set time arrives, once per time. Nothing is sent while the bot is not configured.
+`pulse:telegram-digest` posts the morning message (follow-ups due today, overdue ones, today's priority). `pulse:telegram-plan` sends the evening reminder (default 22:00) to set tomorrow's priority to your personal chat (`TELEGRAM_OWNER_CHAT_ID`; open the bot and press Start first), or to the group if that is not set, listing what stays priority if nothing changes. `pulse:telegram-untouched` runs at `PULSE_UNTOUCHED_HOURS` (default 11,14,17,20) and lists every project with no update or skip today, until all are cleared. `pulse:telegram-due` pings when a follow-up with a set time arrives, once per time. Nothing is sent while the bot is not configured.
 
 ## Rules baked in
 
